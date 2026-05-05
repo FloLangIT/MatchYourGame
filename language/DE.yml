@@ -1,0 +1,42 @@
+NewGuild:
+  NoAccountYet:
+    title: "MatchYourGame joined your guild!"
+    description: "Welcome to MatchYourGame!\nThe bot was added to **%guildName%**\n\nCurrently you didn't have an account yet. Please create one by using the button below, or transfer managing to someone else.\nIf you transfer managing, you will never have access to the guild admin panel.\n\nIf more than 30 users registered by your sign up button in discord channel, you will receive an invite to your our partner program."
+    Button:
+      TransferManage: "Transfer guild manage"
+  SetupGuild:
+    title: "MatchYourGame joined your guild!"
+    description: "Welcome to MatchYourGame!\nThe bot was added to **%guildName%**\n\nYou need to setup your guild before the bot can be used by your users.\n\nPlease use the button below to setup your guild."
+    Button: "Setup guild"
+    Modal:
+      Title: "Setup %guildName%"
+      Language: "Guild language"
+    VoiceCategory: "🤝・MYG Voice・🤝"
+    CreateProfileChannel: "┃👤┃create-profile"
+  SetupCompleted:
+    title: "Setup completed"
+    description: "Your guild is done! Your users can now create accounts on your guild %textChannel% and connect with other players.\n\nAfter %partnerGuildUserCount% User creates an account on your guild, your guild could be used for voice channel, if you want.\nThis condition could be changed. We will inform you about something like that.\n\nJoin the **Bearhell Discord** to get MatchYourGame Support and stay up to date. %discordInvite%"
+  MissingPermissions:
+    title: "Missing permissions"
+    description: "The bot has not enough permissions to setup this guild.\n\nThe bot need MANAGE_CHANNEL and SEND_MESSAGE permission."
+  GuildNotFound:
+    title: "Guild not found!"
+    description: "The guild you are trying to setup was not found.\nMake sure the bot is in the guild you want to setup."
+
+CreateUser:
+  title: "Finde dein perfektes Match"
+  description: "Erstelle deinen Account für MatchYourGame um andere zu finden.\n\nStelle sicher das der Bot dir private Nachrichten senden kann.\nNach der Erstellung läuft der Rest im Privat-Chat weiter."
+  Button: "Account erstellen"
+  Modal:
+    Title: "Create MatchYourGame account"
+    Username: "Username"
+    Language: "Language"
+  AccountCreated:
+    title: "Account successfully created!"
+    description: "You can now use the bot in your private chat."
+  PrivateChatDisable:
+    title: "Private chat disabled!"
+    description: "Please enable private chat in your privacy settings, the bot need to send you messages."
+  YouAlreadyHaveAccount:
+    title: "You already have an account!"
+    description: "Use private chat to manage your account settings."

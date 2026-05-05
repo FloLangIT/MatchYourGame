@@ -1,0 +1,12 @@
+Discord:
+  Token: ""
+  SupportGuild: ""
+  ActivityType: "WATCHING"
+  Activity: "Code"
+  DefaultEmbed:
+    Color: "#7c3aed"
+    Footer: "MatchYourGame | Project in development"
+SQL:
+  JDBC: "jdbc:mysql://localhost:3306/matchyourgame?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC"
+  Username: "root"
+  Password: ""
