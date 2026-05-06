@@ -12,7 +12,7 @@ public class EmbedCreator {
 
     public EmbedCreator() {
         eb = new EmbedBuilder();
-        eb.setColor(Color.getColor(ConfigManager.getString("Discord.DefaultEmbed.Color").replace("#", "0x")));
+        eb.setColor(ConfigManager.getInt("Discord.DefaultEmbed.Color", 0));
         eb.setFooter(ConfigManager.getString("Discord.DefaultEmbed.Footer"));
     }
 

@@ -3,17 +3,25 @@ package de.flolang.matchyourgame;
 import de.flolang.matchyourgame.config.ConfigManager;
 import de.flolang.matchyourgame.database.Database;
 import de.flolang.matchyourgame.database.guild.GuildRepository;
+import de.flolang.matchyourgame.database.user.UserController;
+import de.flolang.matchyourgame.database.user.UserObject;
 import de.flolang.matchyourgame.database.user.UserRepository;
+import de.flolang.matchyourgame.language.LanguageManager;
 import de.flolang.matchyourgame.listener.guild.GuildJoinListener;
 import de.flolang.matchyourgame.listener.guild.SetupGuildListener;
 import de.flolang.matchyourgame.listener.user.CreateUserListener;
+import de.flolang.matchyourgame.manager.UserControlManager;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
+import net.dv8tion.jda.api.components.actionrow.ActionRow;
+import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
 
 public class Main {
 
@@ -40,6 +48,16 @@ public class Main {
         GuildRepository.setFK();
 
         registerListeners();
+
+        /*
+        jda.getUserById(930776001426907146L).openPrivateChannel().queue(privateChannel -> {
+            UserObject userObject = UserController.get(930776001426907146L);
+            privateChannel.sendMessageEmbeds(LanguageManager.getEmbedForUser("NewGuild.SetupGuild", userObject.getId(), new HashMap<>()).build()).addComponents(ActionRow.of(Button.secondary("setupGuild-1174411600917176350", LanguageManager.getMessageForUser("NewGuild.SetupGuild.Button", userObject.getId())))).queue();
+        });
+         */
+
+
+        new UserControlManager(jda.openPrivateChannelById(930776001426907146L).complete().getHistory().retrievePast(1).complete().get(0), UserController.get(2)).loadStartPage();
 
         LOGGER.info("Bot is ready as {}", jda.getSelfUser().getAsTag());
     }

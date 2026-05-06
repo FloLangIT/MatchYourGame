@@ -40,3 +40,13 @@ CreateUser:
   YouAlreadyHaveAccount:
     title: "You already have an account!"
     description: "Use private chat to manage your account settings."
+
+UserProfile:
+  title: "Your MYG profile"
+  description: "User ID: %userId%\nUsername: %username%\nCreated at: %createdAt%"
+  Button:
+    EditProfile: "Edit profile"
+    PassiveQ: "PassiveQ configuration"
+    CreateLobby: "Create lobby"
+    Friends: "Friends"
+    Crews: "Crews"
