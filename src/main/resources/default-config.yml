@@ -1,6 +1,6 @@
 Discord:
   Token: ""
-  SupportGuild: ""
+  SupportGuildInvite: ""
   ActivityType: "WATCHING"
   Activity: "Code"
   DefaultEmbed:
@@ -10,3 +10,5 @@ SQL:
   JDBC: "jdbc:mysql://localhost:3306/matchyourgame?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC"
   Username: "root"
   Password: ""
+
+CreatedUserToBecomePartnerGuild: 30

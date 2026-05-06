@@ -21,13 +21,17 @@ public class GuildRepository {
                     "language VARCHAR(5) NOT NULL," +
                     "added_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP," +
                     "last_change_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP," +
-                    "PRIMARY KEY (guild_id)," +
-                    "FOREIGN KEY (manager_user)" +
-                    "REFERENCES user(id))").executeUpdate();
+                    "PRIMARY KEY (guild_id))").executeUpdate();
             LOGGER.info("Guild table created if not exist");
         } catch (SQLException e) {
             LOGGER.error("Error while creating guild table", e);
         }
+    }
+
+    public static void setFK() {
+        try(Connection conn = Database.getConnection()) {
+            conn.prepareStatement("ALTER TABLE guild ADD CONSTRAINT fk_manager_user FOREIGN KEY (manager_user) REFERENCES user(id)").executeUpdate();
+        } catch (SQLException e) {}
     }
 
     public static GuildObject get(long guildID) {

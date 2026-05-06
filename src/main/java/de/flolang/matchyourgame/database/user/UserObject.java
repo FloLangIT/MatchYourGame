@@ -15,5 +15,6 @@ public class UserObject {
     private Language language;
     private Timestamp createdAt;
     private Timestamp lastChangeAt;
+    private long createGuild;
 
 }

@@ -36,6 +36,8 @@ public class Main {
         Database.connect(ConfigManager.getString("SQL.JDBC"), ConfigManager.getString("SQL.Username"), ConfigManager.getString("SQL.Password"));
         UserRepository.init();
         GuildRepository.init();
+        UserRepository.setFK();
+        GuildRepository.setFK();
 
         registerListeners();
 

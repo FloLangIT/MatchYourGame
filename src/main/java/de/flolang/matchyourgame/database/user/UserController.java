@@ -56,11 +56,11 @@ public class UserController {
         return user;
     }
 
-    public static UserObject create(String username, long discordId, Language language) {
+    public static UserObject create(String username, long discordId, Language language, long createGuild) {
         if(get(username) != null || get(discordId) != null) {
             throw new RuntimeException("Username or discordID already taken");
         }
-        UserObject user = UserRepository.createUser(username, discordId, language);
+        UserObject user = UserRepository.createUser(username, discordId, language, createGuild);
         if (user != null) {
             UserCache.put(user);
             LOGGER.debug("Created user {} and stored in cache", username);

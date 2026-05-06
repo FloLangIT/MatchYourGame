@@ -85,7 +85,7 @@ public class CreateUserListener extends ListenerAdapter {
         }
         Language language = Language.valueOf(Objects.requireNonNull(event.getValue("language")).getAsStringList().getFirst().toUpperCase());
         event.getUser().openPrivateChannel().queue(privateChannel -> {
-            UserObject createdUser = UserController.create(event.getValue("username").getAsString(), event.getUser().getIdLong(), language);
+            UserObject createdUser = UserController.create(event.getValue("username").getAsString(), event.getUser().getIdLong(), language, event.getGuild() != null ? event.getGuild().getIdLong() : 0);
             event.replyEmbeds(LanguageManager.getEmbedForUser("CreateUser.AccountCreated", createdUser.getId(), new HashMap<>()).build()).setEphemeral(true).queue();
 
             //Send user private control panel
