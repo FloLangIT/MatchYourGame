@@ -43,4 +43,12 @@ public class UserControlManager {
         ).queue();
     }
 
+    public void loadFriendsMainPage() {
+        HashMap<String, String> replacings = new HashMap<>();
+        message.editMessageEmbeds(LanguageManager.getEmbedForUser("UserProfile.Friends", userObject.getId(), replacings).build()).setComponents(
+                ActionRow.of(Button.primary("mainPage", LanguageManager.getMessageForUser("UserProfile.Button.Back", userObject.getId()))),
+                ActionRow.of(Button.success("addFriend", LanguageManager.getMessageForUser("UserProfile.Friends.Button.AddFriend", userObject.getId())))
+        ).queue();
+    }
+
 }

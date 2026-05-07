@@ -50,3 +50,12 @@ UserProfile:
     CreateLobby: "Create lobby"
     Friends: "Friends"
     Crews: "Crews"
+    Back: "Back to main page"
+  Friends:
+    title: "Your friends"
+    description: "Here your can manage your friends!"
+    Button:
+      AddFriend: "Add friend"
+    AddFriendModal:
+      Title: "Add friend"
+      Username: "Friend's username"

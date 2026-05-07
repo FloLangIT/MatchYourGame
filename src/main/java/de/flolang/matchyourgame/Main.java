@@ -2,14 +2,18 @@ package de.flolang.matchyourgame;
 
 import de.flolang.matchyourgame.config.ConfigManager;
 import de.flolang.matchyourgame.database.Database;
+import de.flolang.matchyourgame.database.friend.FriendRepository;
+import de.flolang.matchyourgame.database.guild.GuildController;
 import de.flolang.matchyourgame.database.guild.GuildRepository;
 import de.flolang.matchyourgame.database.user.UserController;
 import de.flolang.matchyourgame.database.user.UserObject;
 import de.flolang.matchyourgame.database.user.UserRepository;
+import de.flolang.matchyourgame.language.Language;
 import de.flolang.matchyourgame.language.LanguageManager;
 import de.flolang.matchyourgame.listener.guild.GuildJoinListener;
 import de.flolang.matchyourgame.listener.guild.SetupGuildListener;
 import de.flolang.matchyourgame.listener.user.CreateUserListener;
+import de.flolang.matchyourgame.listener.user.UserProfileButtonListener;
 import de.flolang.matchyourgame.manager.UserControlManager;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -46,18 +50,9 @@ public class Main {
         GuildRepository.init();
         UserRepository.setFK();
         GuildRepository.setFK();
+        FriendRepository.init();
 
         registerListeners();
-
-        /*
-        jda.getUserById(930776001426907146L).openPrivateChannel().queue(privateChannel -> {
-            UserObject userObject = UserController.get(930776001426907146L);
-            privateChannel.sendMessageEmbeds(LanguageManager.getEmbedForUser("NewGuild.SetupGuild", userObject.getId(), new HashMap<>()).build()).addComponents(ActionRow.of(Button.secondary("setupGuild-1174411600917176350", LanguageManager.getMessageForUser("NewGuild.SetupGuild.Button", userObject.getId())))).queue();
-        });
-         */
-
-
-        new UserControlManager(jda.openPrivateChannelById(930776001426907146L).complete().getHistory().retrievePast(1).complete().get(0), UserController.get(2)).loadStartPage();
 
         LOGGER.info("Bot is ready as {}", jda.getSelfUser().getAsTag());
     }
@@ -66,6 +61,7 @@ public class Main {
         jda.addEventListener(new GuildJoinListener());
         jda.addEventListener(new CreateUserListener());
         jda.addEventListener(new SetupGuildListener());
+        jda.addEventListener(new UserProfileButtonListener());
     }
 
     public static void main(String[] args) throws InterruptedException {

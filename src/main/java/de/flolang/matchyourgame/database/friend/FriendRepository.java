@@ -19,8 +19,8 @@ public class FriendRepository {
         try (Connection conn = Database.getConnection()) {
             conn.prepareStatement("CREATE TABLE IF NOT EXISTS friends(requester_id BIGINT NOT NULL," +
                     "receiver_id BIGINT NOT NULL," +
-                    "sent_at TIMESTAMP NOT NULL," +
-                    "accepted_at TIMESTAMP," +
+                    "sent_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                    "accepted_at TIMESTAMP NULL DEFAULT NULL," +
                     "PRIMARY KEY (requester_id, receiver_id)," +
                     "FOREIGN KEY (requester_id) REFERENCES user(id)," +
                     "FOREIGN KEY (receiver_id) REFERENCES user(id))").executeUpdate();
