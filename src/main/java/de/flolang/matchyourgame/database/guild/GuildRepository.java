@@ -15,8 +15,8 @@ public class GuildRepository {
         try(Connection conn = Database.getConnection()) {
             conn.prepareStatement("CREATE TABLE IF NOT EXISTS guild (guild_id VARCHAR(32) NOT NULL," +
                     "manager_user BIGINT NOT NULL ," +
-                    "myg_voice_category_id LONG," +
-                    "myg_textchannel_id LONG NOT NULL," +
+                    "myg_voice_category_id VARCHAR(32)," +
+                    "myg_textchannel_id VARCHAR(32) NOT NULL," +
                     "partnerGuild BOOLEAN NOT NULL DEFAULT FALSE," +
                     "language VARCHAR(5) NOT NULL," +
                     "added_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP," +

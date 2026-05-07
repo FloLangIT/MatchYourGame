@@ -15,7 +15,7 @@ public class UserRepository {
         try(Connection conn = Database.getConnection()) {
            conn.prepareStatement("CREATE TABLE IF NOT EXISTS user (id BIGINT NOT NULL AUTO_INCREMENT," +
                     "username VARCHAR(30) NOT NULL UNIQUE," +
-                    "discord_id LONG NOT NULL UNIQUE," +
+                    "discord_id VARCHAR(32) NOT NULL UNIQUE," +
                    "language VARCHAR(5) NOT NULL," +
                     "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP," +
                     "last_change_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP," +
