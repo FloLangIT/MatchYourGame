@@ -81,12 +81,11 @@ public class FriendRepository {
         }
     }
 
-    public static void create(FriendObject friendObject) {
+    public static void create(int requesterID, int receiverID) {
         try (Connection conn = Database.getConnection()) {
-            PreparedStatement preparedStatement = conn.prepareStatement("INSERT INTO friends (requester_id, receiver_id, sent_at) VALUES (?, ?, ?)");
-            preparedStatement.setInt(1, friendObject.getRequesterID());
-            preparedStatement.setInt(2, friendObject.getReceiverID());
-            preparedStatement.setTimestamp(3, friendObject.getSent_at());
+            PreparedStatement preparedStatement = conn.prepareStatement("INSERT INTO friends (requester_id, receiver_id, sent_at) VALUES (?, ?, CURRENT_TIMESTAMP)");
+            preparedStatement.setInt(1, requesterID);
+            preparedStatement.setInt(2, receiverID);
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             LOGGER.error("Error while creating friend", e);

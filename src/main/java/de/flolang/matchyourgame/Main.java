@@ -12,6 +12,7 @@ import de.flolang.matchyourgame.language.Language;
 import de.flolang.matchyourgame.language.LanguageManager;
 import de.flolang.matchyourgame.listener.guild.GuildJoinListener;
 import de.flolang.matchyourgame.listener.guild.SetupGuildListener;
+import de.flolang.matchyourgame.listener.user.AddFriendListener;
 import de.flolang.matchyourgame.listener.user.CreateUserListener;
 import de.flolang.matchyourgame.listener.user.UserProfileButtonListener;
 import de.flolang.matchyourgame.manager.UserControlManager;
@@ -57,11 +58,13 @@ public class Main {
         LOGGER.info("Bot is ready as {}", jda.getSelfUser().getAsTag());
     }
 
+
     private void registerListeners() {
         jda.addEventListener(new GuildJoinListener());
         jda.addEventListener(new CreateUserListener());
         jda.addEventListener(new SetupGuildListener());
         jda.addEventListener(new UserProfileButtonListener());
+        jda.addEventListener(new AddFriendListener());
     }
 
     public static void main(String[] args) throws InterruptedException {

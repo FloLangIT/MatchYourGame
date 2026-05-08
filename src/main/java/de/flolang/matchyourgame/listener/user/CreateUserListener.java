@@ -4,8 +4,10 @@ import de.flolang.matchyourgame.database.guild.GuildController;
 import de.flolang.matchyourgame.database.guild.GuildObject;
 import de.flolang.matchyourgame.database.user.UserController;
 import de.flolang.matchyourgame.database.user.UserObject;
+import de.flolang.matchyourgame.embed.EmbedCreator;
 import de.flolang.matchyourgame.language.Language;
 import de.flolang.matchyourgame.language.LanguageManager;
+import de.flolang.matchyourgame.manager.UserControlManager;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.label.Label;
@@ -89,13 +91,13 @@ public class CreateUserListener extends ListenerAdapter {
             event.replyEmbeds(LanguageManager.getEmbedForUser("CreateUser.AccountCreated", createdUser.getId(), new HashMap<>()).build()).setEphemeral(true).queue();
 
             //Send user private control panel
-            privateChannel.sendMessage("It works (Debug)").queue(message -> {
+            privateChannel.sendMessageEmbeds(new EmbedCreator().setTitle("Loading...").build()).queue(message -> {
                 privateChannel.pinMessageById(message.getId()).queue(unused -> {
                     privateChannel.getHistory().retrievePast(1).queue(history -> {
                         history.get(0).delete().queue();
                     });
                 });
-
+                new UserControlManager(message, createdUser).loadStartPage();
             });
             if(args.length == 2 && args[0].equals("setupGuild")) {
                 if(guildSetupCreating.containsKey(event.getUser().getIdLong())) {

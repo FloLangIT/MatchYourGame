@@ -39,7 +39,7 @@ public class UserRepository {
             preparedStatement.setInt(1, id);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if(resultSet.next()) {
-                    UserObject userObject = new UserObject(resultSet.getInt("id"), resultSet.getString("username"), resultSet.getLong("discord_id"), Language.valueOf(resultSet.getString("language")), resultSet.getTimestamp("created_at"), resultSet.getTimestamp("last_change_at"), resultSet.getLong("create_guild"));
+                    UserObject userObject = new UserObject(resultSet.getInt("id"), resultSet.getString("username"), Long.parseLong(resultSet.getString("discord_id")), Language.valueOf(resultSet.getString("language")), resultSet.getTimestamp("created_at"), resultSet.getTimestamp("last_change_at"), resultSet.getLong("create_guild"));
                     LOGGER.trace("Get user by id {}", id);
                     return userObject;
                 }
@@ -53,11 +53,11 @@ public class UserRepository {
 
     public static UserObject get(String username) {
         try(Connection conn = Database.getConnection()) {
-            PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM user WHERE id = ?");
+            PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM user WHERE username = ?");
             preparedStatement.setString(1, username);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if(resultSet.next()) {
-                    UserObject userObject = new UserObject(resultSet.getInt("id"), resultSet.getString("username"), resultSet.getLong("discord_id"), Language.valueOf(resultSet.getString("language")), resultSet.getTimestamp("created_at"), resultSet.getTimestamp("last_change_at"), resultSet.getLong("create_guild"));
+                    UserObject userObject = new UserObject(resultSet.getInt("id"), resultSet.getString("username"), Long.parseLong(resultSet.getString("discord_id")), Language.valueOf(resultSet.getString("language")), resultSet.getTimestamp("created_at"), resultSet.getTimestamp("last_change_at"), resultSet.getLong("create_guild"));
                     LOGGER.trace("Get user by username {}", username);
                     return userObject;
                 }
@@ -72,10 +72,10 @@ public class UserRepository {
     public static UserObject get(long discordID) {
         try(Connection conn = Database.getConnection()) {
             PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM user WHERE discord_id = ?");
-            preparedStatement.setLong(1, discordID);
+            preparedStatement.setString(1, String.valueOf(discordID));
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if(resultSet.next()) {
-                    UserObject userObject = new UserObject(resultSet.getInt("id"), resultSet.getString("username"), resultSet.getLong("discord_id"), Language.valueOf(resultSet.getString("language")), resultSet.getTimestamp("created_at"), resultSet.getTimestamp("last_change_at"), resultSet.getLong("create_guild"));
+                    UserObject userObject = new UserObject(resultSet.getInt("id"), resultSet.getString("username"), Long.parseLong(resultSet.getString("discord_id")), Language.valueOf(resultSet.getString("language")), resultSet.getTimestamp("created_at"), resultSet.getTimestamp("last_change_at"), resultSet.getLong("create_guild"));
                     LOGGER.trace("Get user by discord {}", discordID);
                     return userObject;
                 }
@@ -108,12 +108,12 @@ public class UserRepository {
             if(createGuild == 0) {
                 preparedStatement = conn.prepareStatement("INSERT INTO user (username, discord_id, language) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
                 preparedStatement.setString(1, username);
-                preparedStatement.setLong(2, discordID);
+                preparedStatement.setString(2, String.valueOf(discordID));
                 preparedStatement.setString(3, language.name());
             } else {
                 preparedStatement = conn.prepareStatement("INSERT INTO user (username, discord_id, language, create_guild) VALUES (?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
                 preparedStatement.setString(1, username);
-                preparedStatement.setLong(2, discordID);
+                preparedStatement.setString(2, String.valueOf(discordID));
                 preparedStatement.setString(3, language.name());
                 preparedStatement.setLong(4, createGuild);
             }

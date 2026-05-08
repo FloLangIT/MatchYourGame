@@ -32,10 +32,10 @@ public class UserProfileButtonListener extends ListenerAdapter {
         //Friends
         else if(event.getButton().getCustomId().startsWith("addFriend")) {
             UserObject userObject = UserController.get(event.getUser().getIdLong());
-            Modal modal = Modal.create("addFriend", LanguageManager.getMessageForUser("UserProfile.Friends.AddFriendModal.Title", userObject.getId()))
+            Modal modal = Modal.create("addFriend", LanguageManager.getMessageForUser("UserProfile.Friends.AddFriend.Modal.Title", userObject.getId()))
                     .addComponents(Label.of(
-                            LanguageManager.getMessageForUser("UserProfile.Friends.AddFriendModal.Username", userObject.getId()),
-                            TextInput.create("username", TextInputStyle.SHORT).build()
+                            LanguageManager.getMessageForUser("UserProfile.Friends.AddFriend.Modal.Username", userObject.getId()),
+                            TextInput.create("username", TextInputStyle.SHORT).setRequired(true).build()
                     )).build();
             event.replyModal(modal).queue();
         }
