@@ -12,9 +12,8 @@ import de.flolang.matchyourgame.language.Language;
 import de.flolang.matchyourgame.language.LanguageManager;
 import de.flolang.matchyourgame.listener.guild.GuildJoinListener;
 import de.flolang.matchyourgame.listener.guild.SetupGuildListener;
-import de.flolang.matchyourgame.listener.user.AddFriendListener;
-import de.flolang.matchyourgame.listener.user.CreateUserListener;
-import de.flolang.matchyourgame.listener.user.UserProfileButtonListener;
+import de.flolang.matchyourgame.listener.user.*;
+import de.flolang.matchyourgame.manager.FriendRequestManager;
 import de.flolang.matchyourgame.manager.UserControlManager;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -65,6 +64,8 @@ public class Main {
         jda.addEventListener(new SetupGuildListener());
         jda.addEventListener(new UserProfileButtonListener());
         jda.addEventListener(new AddFriendListener());
+        jda.addEventListener(new DeleteMessageListener());
+        jda.addEventListener(new FriendRequestHandleListener());
     }
 
     public static void main(String[] args) throws InterruptedException {

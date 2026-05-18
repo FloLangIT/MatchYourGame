@@ -87,6 +87,19 @@ FriendRequest:
   ConfirmAcceptToReceiver:
     title: "You are now friends with **%requester%**"
     description: "You can now see actions from **%requester%** on the friends page, and easy invite to your lobbies or crews."
+  DenyRequest:
+    title: "Friend request accepted from **%receiver%**"
+    description: "**%receiver%** accepted your friend request from %timestamp%."
+  ConfirmDenyToReceiver:
+    title: "Friend request denied from %receiver%"
+    description: "You denied the friend request from **%requester%**.\n%requester% will be informed about this."
+  Interact:
+    NoFriendRequest:
+      title: "No friend request"
+      description: "This friend request is not longer available."
+    AlreadyAccepted:
+      title: "Already accepted"
+      description: "You already accepted this friend request."
 
 General:
   NoUserWithUsername:

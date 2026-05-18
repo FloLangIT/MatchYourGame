@@ -7,8 +7,8 @@ public class DeleteMessageListener extends ListenerAdapter {
 
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
-        if(event.getComponentId().equalsIgnoreCase("delete")) {
-            event.deferReply().queue();
+        if(event.getButton().getCustomId().equalsIgnoreCase("delete")) {
+            event.deferEdit().queue();
             event.getMessage().delete().queue();
         }
     }
