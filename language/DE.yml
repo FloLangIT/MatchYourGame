@@ -24,9 +24,9 @@ NewGuild:
     description: "The guild you are trying to setup was not found.\nMake sure the bot is in the guild you want to setup."
 
 CreateUser:
-  title: "Finde dein perfektes Match"
-  description: "Erstelle deinen Account für MatchYourGame um andere zu finden.\n\nStelle sicher das der Bot dir private Nachrichten senden kann.\nNach der Erstellung läuft der Rest im Privat-Chat weiter."
-  Button: "Account erstellen"
+  title: "Find your perfect match"
+  description: "Create your account for MatchYourGame to find perfect matches.\n\nMake sure the bot can send private messages to you.\nAfter creation, you can do anything over DM Chat with the bot."
+  Button: "Create account"
   Modal:
     Title: "Create MatchYourGame account"
     Username: "Username"
@@ -50,3 +50,47 @@ UserProfile:
     CreateLobby: "Create lobby"
     Friends: "Friends"
     Crews: "Crews"
+    Back: "Back to main page"
+  Friends:
+    title: "Your friends"
+    description: "Here your can manage your friends!"
+    Button:
+      AddFriend: "Add friend"
+    AddFriend:
+      Modal:
+        Title: "Add friend"
+        Username: "Friend's username"
+      CantAddSelf:
+        title: "You can't add your self"
+        description: "There is no reason to be friend with your self buddy. Try passiveQ or create a lobby."
+      AlreadyAdded:
+        title: "Already send friend request"
+        description: "You have already sent a friend request to %username%."
+      AlreadyFriends:
+        title: "%username% is already your friend"
+        description: "You can't add the same person two times."
+      RequestSent:
+        title: "Request sent"
+        description: "The friend request to %username% was sent."
+
+FriendRequest:
+  RequestReceive:
+    title: "You received a friend request from **%requester%**"
+    description: "**%requester%** sent you a friend request./n/nUse the buttons below to answer this request.\nIf you use the ignore button, the message will be deleted but **%requester%** won't be informed."
+    Button:
+      Accept: "Accept"
+      Deny: "Deny"
+      Ignore: "Ignore"
+  AcceptRequest:
+    title: "Friend request accepted from **%receiver%**"
+    description: "**%receiver%** accepted your friend request from %timestamp%."
+  ConfirmAcceptToReceiver:
+    title: "You are now friends with **%requester%**"
+    description: "You can now see actions from **%requester%** on the friends page, and easy invite to your lobbies or crews."
+
+General:
+  NoUserWithUsername:
+    title: "There is no user"
+    description: "There is no user with the username %username% registered on MatchYourGame. Check for typos. And use the button again."
+  Button:
+    DeleteMessage: "Delete message"

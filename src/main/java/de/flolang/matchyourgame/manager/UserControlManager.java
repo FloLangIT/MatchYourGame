@@ -33,7 +33,7 @@ public class UserControlManager {
         HashMap<String, String> replacings = new HashMap<>();
         replacings.put("%userId%", String.valueOf(userObject.getId()));
         replacings.put("%username%", userObject.getUsername());
-        replacings.put("%createdAt%", userObject.getCreatedAt().toString());
+        replacings.put("%createdAt%", "<t:" + userObject.getCreatedAt().getTime() / 1000 + ":R>");
         message.editMessageEmbeds(LanguageManager.getEmbedForUser("UserProfile", userObject.getId(), replacings).build()).setComponents(
                 ActionRow.of(Button.primary("editProfile", LanguageManager.getMessageForUser("UserProfile.Button.EditProfile", userObject.getId()))),
                 ActionRow.of(Button.secondary("passiveQ", LanguageManager.getMessageForUser("UserProfile.Button.PassiveQ", userObject.getId())),

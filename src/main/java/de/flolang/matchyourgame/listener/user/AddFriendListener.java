@@ -28,6 +28,7 @@ public class AddFriendListener extends ListenerAdapter {
             event.replyEmbeds(LanguageManager.getEmbedForUser("General.NoUserWithUsername", selfUser.getId(), replacings).build()).setEphemeral(true).queue();
             return;
         }
+        username = userObject.getUsername();
         if(userObject.getId() == selfUser.getId()) {
             event.replyEmbeds(LanguageManager.getEmbedForUser("UserProfile.Friends.AddFriend.CantAddSelf", selfUser.getId(), new HashMap<>()).build()).setEphemeral(true).queue();
             return;
@@ -60,6 +61,6 @@ public class AddFriendListener extends ListenerAdapter {
         FriendRequestManager.sendFriendRequest(selfUser.getId(), userObject.getId());
         HashMap<String, String> replacings = new HashMap<>();
         replacings.put("%username%", username);
-        event.replyEmbeds(LanguageManager.getEmbedForUser("UserProfile.Friends.AddFriend.RequestSent", selfUser.getId(), replacings).build()).queue();
+        event.replyEmbeds(LanguageManager.getEmbedForUser("UserProfile.Friends.AddFriend.RequestSent", selfUser.getId(), replacings).build()).setEphemeral(true).queue();
     }
 }

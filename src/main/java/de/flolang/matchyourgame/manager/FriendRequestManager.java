@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.components.buttons.Button;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.TimeZone;
 
 public class FriendRequestManager {
 
@@ -28,6 +29,7 @@ public class FriendRequestManager {
             privateChannel.sendMessageEmbeds(LanguageManager.getEmbedForUser("FriendRequest.AcceptRequest", friendObject.getRequesterID(), replacing).build()).addComponents(ActionRow.of(Button.danger("delete", LanguageManager.getMessageForUser("General.Button.DeleteMessage", friendObject.getRequesterID())))).queue();
         });
         friendObject.setAccepted_at(Timestamp.from(Instant.now()));
+        FriendRepository.update(friendObject);
     }
 
     public static void sendFriendRequest(int requesterID, int receiverID) {
