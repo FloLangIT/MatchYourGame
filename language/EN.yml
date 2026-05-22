@@ -40,6 +40,9 @@ CreateUser:
   YouAlreadyHaveAccount:
     title: "You already have an account!"
     description: "Use private chat to manage your account settings."
+  AccountCreationRestricted:
+    title: "Account creation restricted!"
+    description: "Currently we are in pre alpha phase, so account creation is restricted. We will open account creation as soon as possible. Join the Discord to get updates about MatchYourGame. %discordInvite%\n\nIf you want to become a tester, please contact us in the Discord and we will add you to the tester role."
 
 UserProfile:
   title: "Your MYG profile"

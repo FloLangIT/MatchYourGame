@@ -1,5 +1,7 @@
 package de.flolang.matchyourgame.listener.user;
 
+import de.flolang.matchyourgame.Main;
+import de.flolang.matchyourgame.config.ConfigManager;
 import de.flolang.matchyourgame.database.guild.GuildController;
 import de.flolang.matchyourgame.database.guild.GuildObject;
 import de.flolang.matchyourgame.database.user.UserController;
@@ -34,6 +36,13 @@ public class CreateUserListener extends ListenerAdapter {
     public void onButtonInteraction(ButtonInteractionEvent event) {
         if (!event.getButton().getCustomId().startsWith("createAccount")) {
             return;
+        }
+        if(Objects.equals(ConfigManager.getString("Testing.Enabled"), "true")) {
+            Guild guildById = event.getJDA().getGuildById(ConfigManager.getString("Discord.MYGGuildID"));
+            if(guildById == null || !guildById.retrieveMemberById(event.getUser().getIdLong()).complete().getRoles().contains(guildById.getRoleById(ConfigManager.getString("Testing.RoleID")))) {
+                event.replyEmbeds(LanguageManager.getEmbedByLanguage("CreateUser.AccountCreationRestricted", event.getGuild() == null ? Language.EN : GuildController.getByGuildID(event.getGuild().getIdLong()).getLanguage(), new HashMap<>()).build()).setEphemeral(true).queue();
+                return;
+            }
         }
         if(event.getButton().getCustomId().contains("-setupGuild-"))
             guildSetupCreating.put(event.getUser().getIdLong(), event.getMessage());

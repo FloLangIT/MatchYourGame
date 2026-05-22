@@ -1,6 +1,7 @@
 Discord:
   Token: ""
   SupportGuildInvite: ""
+  MYGGuildID: ""
   ActivityType: "WATCHING"
   Activity: "Code"
   DefaultEmbed:
@@ -12,3 +13,7 @@ SQL:
   Password: ""
 
 CreatedUserToBecomePartnerGuild: 30
+
+Testing:
+  RoleID: 1438288753822007367
+  Enabled: true
