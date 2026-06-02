@@ -8,6 +8,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 
 public class GameRepository {
 
@@ -50,6 +51,58 @@ public class GameRepository {
         return null;
     }
 
+    public static ArrayList<GameObject> getSubGames(int id) {
+        try(Connection conn = Database.getConnection()) {
+            ArrayList<GameObject> subGames = new ArrayList<>();
+            PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM game WHERE sub_game_from = ?");
+            preparedStatement.setInt(1, id);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            while (resultSet.next()) {
+                GameObject gameObject = new GameObject(resultSet.getInt("id"), resultSet.getInt("sub_game_from"), resultSet.getString("name"), resultSet.getBoolean("skillbased"), resultSet.getBoolean("active"));
+                subGames.add(gameObject);
+            }
+            LOGGER.trace("Get sub games for game with id {}", id);
+            return subGames;
+        } catch (SQLException e) {
+            LOGGER.error("Error while getting sub games for game with id {}", id, e);
+            return new ArrayList<>();
+        }
+    }
+
+    public static ArrayList<GameObject> getAllGames() {
+        try(Connection conn = Database.getConnection()) {
+            ArrayList<GameObject> allGames = new ArrayList<>();
+            PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM game");
+            ResultSet resultSet = preparedStatement.executeQuery();
+            while (resultSet.next()) {
+                GameObject gameObject = new GameObject(resultSet.getInt("id"), resultSet.getInt("sub_game_from"), resultSet.getString("name"), resultSet.getBoolean("skillbased"), resultSet.getBoolean("active"));
+                allGames.add(gameObject);
+            }
+            LOGGER.trace("Get all games");
+            return allGames;
+        } catch (SQLException e) {
+            LOGGER.error("Error while getting all games", e);
+            return new ArrayList<>();
+        }
+    }
+
+    public static ArrayList<GameObject> getAllMainGames() {
+        try (Connection conn = Database.getConnection()) {
+            ArrayList<GameObject> allMainGames = new ArrayList<>();
+            PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM game WHERE sub_game_from IS NULL");
+            ResultSet resultSet = preparedStatement.executeQuery();
+            while (resultSet.next()) {
+                GameObject gameObject = new GameObject(resultSet.getInt("id"), 0, resultSet.getString("name"), resultSet.getBoolean("skillbased"), resultSet.getBoolean("active"));
+                allMainGames.add(gameObject);
+            }
+            LOGGER.trace("Get all main games");
+            return allMainGames;
+        } catch (SQLException e) {
+            LOGGER.error("Error while getting all main games", e);
+            return new ArrayList<>();
+        }
+    }
+
     public static GameObject create(int subGameFrom, String name, boolean skillbased, boolean active) {
         try(Connection conn = Database.getConnection()) {
             PreparedStatement preparedStatement;
@@ -84,6 +137,32 @@ public class GameRepository {
         } catch (SQLException e) {
             LOGGER.error("Error while creating game", e);
             return null;
+        }
+    }
+
+    public static void update(GameObject gameObject) {
+        try(Connection conn = Database.getConnection()) {
+            PreparedStatement preparedStatement = conn.prepareStatement("UPDATE game SET sub_game_from = ?, name = ?, skillbased = ?, active = ? WHERE id = ?");
+            preparedStatement.setInt(1, gameObject.getSubGameFrom().getId());
+            preparedStatement.setString(2, gameObject.getName());
+            preparedStatement.setBoolean(3, gameObject.isSkillbased());
+            preparedStatement.setBoolean(4, gameObject.isActive());
+            preparedStatement.setInt(5, gameObject.getId());
+            preparedStatement.executeUpdate();
+            LOGGER.trace("Updated game with id {}", gameObject.getId());
+        } catch (SQLException e) {
+            LOGGER.error("Error while updating game", e);
+        }
+    }
+
+    public static void remove(int id) {
+        try(Connection conn = Database.getConnection()) {
+            PreparedStatement preparedStatement = conn.prepareStatement("DELETE FROM game WHERE id = ?");
+            preparedStatement.setInt(1, id);
+            preparedStatement.executeUpdate();
+            LOGGER.trace("Removed game with id {}", id);
+        } catch (SQLException e) {
+            LOGGER.error("Error while removing game", e);
         }
     }
 

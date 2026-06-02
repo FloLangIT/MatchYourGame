@@ -14,7 +14,7 @@ public class GameObject {
 
     public GameObject getSubGameFrom() {
         if(subGameFrom == 0) return null;
-        else return GameRepository.get(subGameFrom);
+        else return GameController.get(subGameFrom);
     }
 
 }
