@@ -3,6 +3,7 @@ package de.flolang.matchyourgame;
 import de.flolang.matchyourgame.config.ConfigManager;
 import de.flolang.matchyourgame.database.Database;
 import de.flolang.matchyourgame.database.friend.FriendRepository;
+import de.flolang.matchyourgame.database.game.GameRepository;
 import de.flolang.matchyourgame.database.guild.GuildController;
 import de.flolang.matchyourgame.database.guild.GuildRepository;
 import de.flolang.matchyourgame.database.user.UserController;
@@ -51,6 +52,8 @@ public class Main {
         UserRepository.setFK();
         GuildRepository.setFK();
         FriendRepository.init();
+        GameRepository.init();
+        GameRepository.setFK();
 
         registerListeners();
 
