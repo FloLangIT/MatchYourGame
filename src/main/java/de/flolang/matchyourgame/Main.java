@@ -3,6 +3,7 @@ package de.flolang.matchyourgame;
 import de.flolang.matchyourgame.config.ConfigManager;
 import de.flolang.matchyourgame.database.Database;
 import de.flolang.matchyourgame.database.friend.FriendRepository;
+import de.flolang.matchyourgame.database.game.GameRepository;
 import de.flolang.matchyourgame.database.guild.GuildController;
 import de.flolang.matchyourgame.database.guild.GuildRepository;
 import de.flolang.matchyourgame.database.user.UserController;
@@ -26,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.Scanner;
 
 public class Main {
 
@@ -51,12 +53,62 @@ public class Main {
         UserRepository.setFK();
         GuildRepository.setFK();
         FriendRepository.init();
+        GameRepository.init();
+        GameRepository.setFK();
 
         registerListeners();
 
         LOGGER.info("Bot is ready as {}", jda.getSelfUser().getAsTag());
+
+        consoleListener();
     }
 
+    private void consoleListener() {
+        Thread consoleThread = new Thread(() -> {
+            Scanner scanner = new Scanner(System.in);
+
+            while (true) {
+                String line = scanner.nextLine();
+                String[] args = line.split(" ");
+
+                switch (args[0].toLowerCase()) {
+                    case "stop":
+                    case "shutdown":
+                        LOGGER.info("Shutting down the bot...");
+                        jda.shutdown();
+                        System.exit(0);
+                        break;
+                    case "reload":
+                        LOGGER.info("Reloading configuration...");
+                        new ConfigManager();
+                        break;
+                    case "game":
+                        if(args.length == 5 && args[1].equalsIgnoreCase("create")) {
+                            //game create $NAME $MAINGAME_ID(0=MAINGAME) $SKILLBASED
+                            String name = args[2];
+                            int maingame;
+                            try {
+                                maingame = Integer.parseInt(args[3]);
+                            } catch (NumberFormatException e) {
+                                LOGGER.warn("Invalid maingame ID: {}", args[3]);
+                                break;
+                            }
+                            boolean skillbased = Boolean.parseBoolean(args[4]);
+                            GameRepository.create(maingame, name, skillbased, true);
+                            LOGGER.info("Game {} created successfully", name);
+                        } else {
+                            LOGGER.info("Use game create $NAME $MAINGAME_ID $SKILLBASED");
+                        }
+                        break;
+                    default:
+                        LOGGER.warn("Unknown command: {}", args[0]);
+                }
+            }
+        });
+
+        consoleThread.setDaemon(true);
+        consoleThread.start();
+    }
 
     private void registerListeners() {
         jda.addEventListener(new GuildJoinListener());

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourcePerFileMappings">
-    <file url="file://$PROJECT_DIR$/src/main/java/de/flolang/matchyourgame/database/guild/GuildRepository.java" value="8b13c689-e320-4215-af88-4c87890da028" />
+    <file url="file://$PROJECT_DIR$/src/main/java/de/flolang/matchyourgame/database/game/GameRepository.java" value="8b13c689-e320-4215-af88-4c87890da028" />
   </component>
 </project>
