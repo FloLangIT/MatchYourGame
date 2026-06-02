@@ -9,13 +9,12 @@ public class GameObject {
     private int id;
     private int subGameFrom;
     private String name;
-    private String description;
     private boolean skillbased;
     private boolean active;
 
-    public GameObject getMainGame() {
+    public GameObject getSubGameFrom() {
         if(subGameFrom == 0) return null;
-        else return null;
+        else return GameRepository.get(subGameFrom);
     }
 
 }
