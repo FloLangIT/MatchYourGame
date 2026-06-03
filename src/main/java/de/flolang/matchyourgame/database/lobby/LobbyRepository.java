@@ -45,4 +45,19 @@ public class LobbyRepository {
         }
     }
 
+    public static LobbyObject getByVoiceChannel(long voiceChannelID) {
+        try (Connection conn = Database.getConnection()) {
+            PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM lobby WHERE voicechannel_ID = ?");
+            preparedStatement.setLong(1, voiceChannelID);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            while (resultSet.next()) {
+                LobbyObject lobbyObject = new LobbyObject(resultSet.getInt("id"), resultSet.getInt("game_id"), resultSet.getInt("leader_id"), resultSet.getLong("guild_id"), resultSet.getLong("voicechannel_ID"), resultSet.getTimestamp("created_at"), resultSet.getTimestamp("closed_at"));
+                LOGGER.trace("Get lobby by voiceChannelID {}", voiceChannelID);
+                return lobbyObject;
+            }
+        } catch (SQLException e) {
+            LOGGER.error("Error while getting lobby with voiceChannelID {}", voiceChannelID, e);
+        }
+        return null;
+    }
 }
