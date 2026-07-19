@@ -51,6 +51,29 @@ public class FriendRepository {
         return null;
     }
 
+    public static boolean areFriends(int user1, int user2) {
+        FriendObject friendship = get(user1, user2);
+        return friendship != null && friendship.getAccepted_at() != null;
+    }
+
+    public static boolean haveMutualFriend(int user1, int user2) {
+        String sql = "SELECT 1 FROM (" +
+                "SELECT CASE WHEN requester_id=? THEN receiver_id ELSE requester_id END friend_id " +
+                "FROM friends WHERE (requester_id=? OR receiver_id=?) AND accepted_at IS NOT NULL" +
+                ") first_friends JOIN (" +
+                "SELECT CASE WHEN requester_id=? THEN receiver_id ELSE requester_id END friend_id " +
+                "FROM friends WHERE (requester_id=? OR receiver_id=?) AND accepted_at IS NOT NULL" +
+                ") second_friends USING (friend_id) LIMIT 1";
+        try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, user1); ps.setInt(2, user1); ps.setInt(3, user1);
+            ps.setInt(4, user2); ps.setInt(5, user2); ps.setInt(6, user2);
+            try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
+        } catch (SQLException e) {
+            LOGGER.error("Error while checking mutual friends", e);
+            return false;
+        }
+    }
+
     public static List<FriendObject> getFriends(int userID) {
         try (Connection conn = Database.getConnection()) {
             PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM friends WHERE requester_id = ? OR receiver_id = ?");
@@ -67,6 +90,42 @@ public class FriendRepository {
             LOGGER.error("Error while finding friends", e);
         }
         return new ArrayList<>();
+    }
+
+    public static List<Integer> getAcceptedFriendIds(int userId) {
+        List<Integer> ids = new ArrayList<>();
+        String sql = "SELECT CASE WHEN requester_id=? THEN receiver_id ELSE requester_id END friend_id " +
+                "FROM friends WHERE (requester_id=? OR receiver_id=?) AND accepted_at IS NOT NULL ORDER BY accepted_at,friend_id";
+        try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId); ps.setInt(2, userId); ps.setInt(3, userId);
+            try (ResultSet rs = ps.executeQuery()) { while (rs.next()) ids.add(rs.getInt("friend_id")); }
+        } catch (SQLException e) { LOGGER.error("Error while listing accepted friends", e); }
+        return ids;
+    }
+
+    public static List<Integer> getPartyOrLobbyActiveFriendIds(int userId) {
+        List<Integer> ids = new ArrayList<>();
+        String friends = "SELECT CASE WHEN requester_id=? THEN receiver_id ELSE requester_id END friend_id " +
+                "FROM friends WHERE (requester_id=? OR receiver_id=?) AND accepted_at IS NOT NULL";
+        String sql = "SELECT DISTINCT f.friend_id FROM (" + friends + ") f WHERE " +
+                "EXISTS (SELECT 1 FROM party_member pm JOIN party p ON p.id=pm.party_id WHERE pm.user_id=f.friend_id AND p.status='OPEN') OR " +
+                "EXISTS (SELECT 1 FROM lobby_member lm JOIN lobby l ON l.id=lm.lobby_id WHERE lm.user_id=f.friend_id " +
+                "AND lm.left_at IS NULL AND l.status IN ('OPEN','FORMING','READY','ACTIVE'))";
+        try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId); ps.setInt(2, userId); ps.setInt(3, userId);
+            try (ResultSet rs = ps.executeQuery()) { while (rs.next()) ids.add(rs.getInt("friend_id")); }
+        } catch (SQLException e) { LOGGER.error("Error while finding friends in parties or lobbies", e); }
+        return ids;
+    }
+
+    public static boolean delete(int user1, int user2) {
+        FriendObject friendship = get(user1, user2);
+        if (friendship == null || friendship.getAccepted_at() == null) return false;
+        try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(
+                "DELETE FROM friends WHERE requester_id=? AND receiver_id=?")) {
+            ps.setInt(1, friendship.getRequesterID()); ps.setInt(2, friendship.getReceiverID());
+            return ps.executeUpdate() == 1;
+        } catch (SQLException e) { LOGGER.error("Error while removing friendship", e); return false; }
     }
 
     public static void update(FriendObject friendObject) {
@@ -101,6 +160,13 @@ public class FriendRepository {
         } catch (SQLException e) {
             LOGGER.error("Error while deleting friend", e);
         }
+    }
+
+    public static boolean deleteAllForUser(int userId) {
+        try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(
+                "DELETE FROM friends WHERE requester_id=? OR receiver_id=?")) {
+            ps.setInt(1, userId); ps.setInt(2, userId); ps.executeUpdate(); return true;
+        } catch (SQLException e) { LOGGER.error("Error while removing all friendships for user {}", userId, e); return false; }
     }
 
 }

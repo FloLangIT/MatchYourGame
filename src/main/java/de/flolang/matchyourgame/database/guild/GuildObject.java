@@ -23,4 +23,8 @@ public class GuildObject {
     public UserObject getManagerUser() {
         return UserController.get(managerUser);
     }
+
+    public int getManagerUserId() {
+        return managerUser;
+    }
 }

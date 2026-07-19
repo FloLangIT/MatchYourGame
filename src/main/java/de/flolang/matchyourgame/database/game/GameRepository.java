@@ -9,6 +9,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class GameRepository {
 
@@ -103,6 +106,32 @@ public class GameRepository {
         }
     }
 
+    public static Map<Integer, GameActivityStats> activityStats() {
+        String sql = "SELECT g.id," +
+                "(SELECT COUNT(DISTINCT sp.user_id) FROM search_profile sp " +
+                "JOIN game profile_game ON profile_game.id=sp.game_id " +
+                "WHERE sp.passive_enabled=TRUE AND (sp.game_id=g.id OR " +
+                "(g.sub_game_from IS NULL AND profile_game.sub_game_from=g.id))) passive_users," +
+                "(SELECT COUNT(*) FROM lobby l JOIN game lobby_game ON lobby_game.id=l.game_id " +
+                "WHERE l.status='OPEN' AND (l.game_id=g.id OR " +
+                "(g.sub_game_from IS NULL AND lobby_game.sub_game_from=g.id)) AND " +
+                "(SELECT COUNT(*) FROM lobby_member lm WHERE lm.lobby_id=l.id AND lm.left_at IS NULL)<l.max_players) open_lobbies " +
+                "FROM game g";
+        Map<Integer, GameActivityStats> result = new HashMap<>();
+        try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) result.put(rs.getInt("id"), new GameActivityStats(
+                    rs.getInt("passive_users"), rs.getInt("open_lobbies")));
+        } catch (SQLException e) { LOGGER.error("Could not load game activity statistics", e); }
+        return result;
+    }
+
+    public static GameActivityStats activityStats(int gameId) {
+        return activityStats().getOrDefault(gameId, new GameActivityStats(0, 0));
+    }
+
+    public record GameActivityStats(int passiveUsers, int openLobbies) {}
+
     public static GameObject create(int subGameFrom, String name, boolean skillbased, boolean active) {
         try(Connection conn = Database.getConnection()) {
             PreparedStatement preparedStatement;
@@ -140,6 +169,18 @@ public class GameRepository {
         }
     }
 
+    public static GameObject create(int subGameFrom, String name, boolean skillbased, boolean active,
+                                    List<GameStatDefinition> statistics) {
+        GameObject game = create(subGameFrom, name, skillbased, active);
+        if (game != null && statistics != null) {
+            for (GameStatDefinition statistic : statistics) {
+                GameStatRepository.create(game.getId(), statistic.name(), statistic.scope(),
+                        statistic.valueType(), statistic.required());
+            }
+        }
+        return game;
+    }
+
     public static void update(GameObject gameObject) {
         try(Connection conn = Database.getConnection()) {
             PreparedStatement preparedStatement = conn.prepareStatement("UPDATE game SET sub_game_from = ?, name = ?, skillbased = ?, active = ? WHERE id = ?");
@@ -164,6 +205,15 @@ public class GameRepository {
         } catch (SQLException e) {
             LOGGER.error("Error while removing game", e);
         }
+    }
+
+    public static boolean updateBasic(int id, String name, boolean skillbased, boolean active) {
+        if (name == null || name.isBlank() || name.length() > 255) return false;
+        try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(
+                "UPDATE game SET name=?,skillbased=?,active=? WHERE id=?")) {
+            ps.setString(1, name.trim()); ps.setBoolean(2, skillbased); ps.setBoolean(3, active); ps.setInt(4, id);
+            return ps.executeUpdate() == 1;
+        } catch (SQLException e) { LOGGER.error("Could not update game {}", id, e); return false; }
     }
 
 }

@@ -23,6 +23,45 @@ NewGuild:
     title: "Guild not found!"
     description: "The guild you are trying to setup was not found.\nMake sure the bot is in the guild you want to setup."
 
+GuildManager:
+  List:
+    title: "Your guilds"
+    description: "You manage **%count% guilds** · page %page%/%pages%\n\n%guilds%"
+    Entry: "• **%name%** · partner guild: %partner%"
+    Select: "Select guild"
+  Detail:
+    title: "Manage %name%"
+    description: "**Discord guild**\nGuild ID: `%guildId%`\nGuild owner: %owner%\nMembers: **%members%**\nGuild language: **%language%**\nConfigured: %addedAt%\nRegistration channel: %textChannel%\n\n**MatchYourGame**\nAccounts created through this guild: **%accounts%**\nAverage user rating: **%rating%**\nPartner-program progress: **%accounts%/%threshold%** · **%remaining%** accounts remaining\nPartner guild: **%partner%**\nApplication status: **%partnerStatus%**\nBot permissions: %permissions%\nVoice category: %voiceCategory%\nLobbies communicated on this partner guild: **%hostedLobbies%**\nCurrently active voice lobbies: **%activeLobbies%**"
+  NotFound: "You no longer manage this guild or it could not be found."
+  DiscordUnavailable: "Guild currently unavailable"
+  PermissionsReady: "All required permissions are available"
+  PermissionsMissing: "Missing: %permissions%"
+  Partner:
+    Withdraw: "Withdraw partner status"
+    Withdrawn: "The partner status was withdrawn. Lobbies already in progress remain unaffected."
+    WithdrawFailed: "The partner status could not be withdrawn."
+  Transfer:
+    Button: "Transfer guild manager"
+    Title: "Transfer guild manager"
+    Username: "MYG username of the new manager"
+    UserNotFound: "No active MYG account with this username was found."
+    TargetUnavailable: "The new manager could not be reached by DM. Management was not transferred."
+    SameUser: "You already manage this guild."
+    NotAuthorized: "You may not transfer or configure this guild."
+    Failed: "The guild management could not be transferred."
+    Success: "Guild management was transferred to **%username%**."
+    Notification:
+      Title: "Guild management transferred"
+      Description: "You have received MYG management of **%guild%**. The guild manager is now available in your management message."
+  Status:
+    NOT_ELIGIBLE: "Threshold not reached yet"
+    INVITED: "Application available"
+    SUBMITTED: "Application under review"
+    ADMIN_APPROVED: "Approved – confirmation pending"
+    ACTIVE: "Active"
+    REJECTED: "Rejected – reapplication available"
+    WITHDRAWN: "Withdrawn – reapplication available"
+
 CreateUser:
   title: "Find your perfect match"
   description: "Create your account for MatchYourGame to find perfect matches.\n\nMake sure the bot can send private messages to you.\nAfter creation, you can do anything over DM Chat with the bot."
@@ -43,22 +82,137 @@ CreateUser:
   AccountCreationRestricted:
     title: "Account creation restricted!"
     description: "Currently we are in pre alpha phase, so account creation is restricted. We will open account creation as soon as possible. Join the Discord to get updates about MatchYourGame. %discordInvite%\n\nIf you want to become a tester, please contact us in the Discord and we will add you to the tester role."
+  Banned: "You are currently banned from MatchYourGame and cannot create a new account."
 
 UserProfile:
   title: "Your MYG profile"
-  description: "User ID: %userId%\nUsername: %username%\nCreated at: %createdAt%"
+  description: "User ID: %userId%\nUsername: %username%\nCreated at: %createdAt%\nAverage rating: **%rating%**\nCommunication languages: %communicationLanguages%\nPassiveQ: **%passiveStatus%** (%passiveGamesLabel%)\nMessages: **%inboxNotice%**\n\nParty: %party%\nFriends active: %activeFriends%/%totalFriends%"
+  PassiveGames:
+    One: "1 game"
+    Other: "%count% games"
   Button:
     EditProfile: "Edit profile"
     PassiveQ: "PassiveQ configuration"
+    EnablePassiveQ: "Enable PassiveQ"
+    DisablePassiveQ: "Disable PassiveQ"
     CreateLobby: "Create lobby"
+    ManageLobby: "Manage active lobby"
+    GameProfiles: "Game profiles"
+    BrowseLobbies: "Matching lobbies"
+    Party: "Party"
+    PartyCreate: "Create party"
+    PartyManage: "Manage party"
     Friends: "Friends"
     Crews: "Crews"
-    Back: "Back to main page"
+    Report: "Report / feedback"
+    ProjectInvite: "Invite user"
+    AdminUsers: "User management"
+    AdminGuilds: "Guild management"
+    AdminPanel: "Admin panel"
+    GuildManager: "Manage guild"
+    Inbox: "Inbox"
+    InboxUnread: "Inbox (%count% new)"
+    Back: "Back"
+  InboxStatus:
+    None: "No new messages"
+    Unread: "%count% new messages"
+  PartyStatus:
+    None: "No party"
+    Active: "In party (%count% users)"
+  Edit:
+    title: "Edit profile"
+    description: "Username: **%username%**\nMessage language: **%messageLanguage%**\nCommunication languages: **%communicationLanguages%**\nFriend requests: **%friendRequestPolicy%**"
+    Button:
+      Username: "Change username"
+      CommunicationLanguages: "Communication languages"
+      DeleteAccount: "Delete account"
+    Select:
+      MessageLanguage: "Select message language"
+      FriendRequests: "Who may send friend requests?"
+    FriendRequests:
+      EVERYONE: "Everyone"
+      FRIENDS_OF_FRIENDS: "Friends of friends only"
+    UsernameModal:
+      Title: "Change username"
+      Username: "New username"
+      Unavailable: "This username is invalid or already taken."
+    InvalidLanguage: "The language or priority is invalid."
+  Crews:
+    title: "Your crews"
+    description: "You are in %count% crews · page %page%/%pages%.\n\n%crews%"
+    Entry: "• **%name%** · %role% · %members% members"
+    None: "You are not currently a member of any crew."
+    Select: "Select a crew"
+    ActionFailed: "This crew action is not permitted or is no longer available."
+    Create:
+      Button: "Create crew"
+      Title: "Create crew"
+      Name: "Crew name"
+      Failed: "The crew could not be created. The name may already be taken."
+    Role:
+      LEADER: "Leader"
+      ADMIN: "Admin"
+      MODERATOR: "Moderator"
+      MEMBER: "Member"
+    Actions:
+      Invite: "Invite member"
+      Members: "Manage members"
+      Games: "Game list"
+      Rename: "Rename"
+      Delete: "Delete crew"
+      Leave: "Leave crew"
+      Kick: "Kick member"
+    Detail:
+      title: "%name%"
+      description: "Crew ID: %id%\nLeader: **%owner%**\nYour role: **%role%**\nCreated: %createdAt%\nMembers: **%memberCount%**\n\n**Member list**\n%members%"
+    Members:
+      title: "Members of %name%"
+      description: "Select a member to manage them · page %page%/%pages%."
+      Select: "Select a member"
+      ChangeRole: "Select a new role"
+    Member:
+      title: "Manage %username%"
+      description: "Current role: **%role%**"
+    Games:
+      title: "Game list of %name%"
+      description: "Enabled games: **%games%**\n\nSelect a game to add or remove it · page %page%/%pages%."
+      Select: "Enable or disable a game"
+      None: "None"
+    Invite:
+      Title: "Invite crew member"
+      Username: "Username"
+      Sent: "The crew invitation was sent."
+      Failed: "The invitation could not be sent. Check the user, membership, and your permission."
+    Invitation:
+      Title: "Crew invitation"
+      Description: "**%inviter%** invited you to the crew **%clan%**."
+      Accept: "Accept"
+      Decline: "Decline"
+      Accepted: "You joined the crew."
+      Declined: "You declined the crew invitation."
+      Unavailable: "This crew invitation is no longer available."
+    MemberJoined:
+      Title: "New crew member"
+      Description: "**%user%** joined the crew **%clan%**."
+    Rename:
+      Title: "Rename crew"
+      Failed: "The crew could not be renamed. The name may already be taken."
+    Delete:
+      Title: "Really delete crew?"
+      Description: "The crew, its members, and its game list will be permanently deleted."
+      Confirm: "Delete permanently"
   Friends:
     title: "Your friends"
-    description: "Here your can manage your friends!"
+    description: "You have %count% friends · page %page%/%pages%. Select a friend to view their profile or remove them."
+    Dropdown: "Select a friend"
     Button:
       AddFriend: "Add friend"
+    Profile:
+      title: "%username%"
+      description: "User ID: %userId%\nMember since: %createdAt%\nAverage rating: **%rating%**\nFriends with you: %friendsSince%\nLast in a lobby: %lastPlayed%\n\n**Enabled PassiveQ games**\n%passiveGames%"
+      Remove: "Remove friend"
+      Never: "Never"
+      None: "None"
     AddFriend:
       Modal:
         Title: "Add friend"
@@ -75,6 +229,9 @@ UserProfile:
       RequestSent:
         title: "Request sent"
         description: "The friend request to %username% was sent."
+      FriendsOfFriendsOnly:
+        title: "Friend request unavailable"
+        description: "**%username%** only accepts friend requests from friends of friends. You currently have no mutual accepted friend."
 
 FriendRequest:
   RequestReceive:
@@ -97,16 +254,684 @@ FriendRequest:
     title: "Friend request denied from %receiver%"
     description: "You denied the friend request from **%requester%**.\n%requester% will be informed about this."
   Interact:
+    NoAccount: "No MatchYourGame account was found for this Discord account."
     NoFriendRequest:
       title: "No friend request"
       description: "This friend request is not longer available."
     AlreadyAccepted:
       title: "Already accepted"
       description: "You already accepted this friend request."
+    Ignored:
+      title: "Friend request ignored"
+      description: "The request from **%requester%** was ignored. The sender will not be notified."
 
 General:
+  "On": "ON"
+  "Off": "OFF"
+  Previous: "Previous"
+  Next: "Next"
+  InvalidInput: "Invalid input: %error%"
   NoUserWithUsername:
     title: "There is no user"
     description: "There is no user with the username %username% registered on MatchYourGame. Check for typos. And use the button again."
   Button:
     DeleteMessage: "Delete message"
+
+Rating:
+  None: "No ratings yet"
+
+Lobby:
+  Closed: "The lobby was closed. Match collection and random reviews have started."
+  AutoClosed:
+    Title: "Lobby closed automatically"
+    Description: "The lobby was closed because no players remain in its voice channel. Please enter the matches that were played."
+  InvitationDeclined: "Invitation declined."
+  InvitationUnavailable: "This lobby invitation is no longer available."
+  OnlyHostClose: "Only the host can close this lobby."
+  OnlyHostConfigure: "Only the host can configure lobby queues."
+  Button:
+    Close: "Close lobby"
+    Leave: "Leave lobby"
+    InviteFriend: "Invite friend"
+    InviteClan: "Invite crew"
+    ActivatePassive: "Enable PassiveQ"
+    DeactivatePassive: "Disable PassiveQ"
+    Settings: "Lobby settings"
+  View:
+    Title: "Lobby #%lobbyId%"
+    Description: "Game: %game%\nPlayers: %players%/%capacity%\nPlatform: %platform%\nRegion: %region%\nCommunication languages: %languages%\nAllowed ranks: %ranks%\nVoice channel: %voiceInvite%\n\n**Players in this lobby**\n%playerList%"
+    AnyRank: "All ranks"
+    AnyLanguage: "Any"
+    JoinVoice: "Join voice channel"
+    VoiceNotReady: "Not created yet"
+    VoicePreparing: "Creating invitation link…"
+  Settings:
+    Modal:
+      Title: "Lobby settings"
+      Capacity: "Requested player count (2–99)"
+      Minimum: "Minimum rank (optional)"
+      Maximum: "Maximum rank (optional)"
+    Fullstack:
+      Description: "This player count reaches the no-restriction size. Should the regular rank rules and your rank limits still apply?"
+    Expired: "This settings request has expired. Open the lobby settings again."
+    UnknownRank: "Rank **%rank%** was not found for this game. Use its exact rank name."
+    Result:
+      UPDATED: "Lobby updated: **%capacity% players**, allowed ranks **%ranks%**."
+      UNAVAILABLE: "The lobby settings are no longer available or you are not the host."
+      INVALID_CAPACITY: "The player count must be between 2 and 99."
+      CAPACITY_BELOW_MEMBERS: "The player count cannot be lower than the current **%members% members**."
+      INVALID_RANK_RANGE: "The minimum rank cannot be above the maximum rank."
+      RANK_OUTSIDE_ALLOWED: "The selected limit is outside the regularly allowed ranks **%min% – %max%**."
+      RANKS_NOT_AVAILABLE: "Rank limits are not available for this game mode."
+      UNRESTRICTED_NOT_AVAILABLE: "No-restriction is not available for this player count."
+  PassiveQueue:
+    Started: "Passive Queue has started. **%count% invitations** were sent."
+    Stopped: "Passive Queue has been disabled."
+    Exhausted:
+      Title: "No more players in Passive Queue"
+      Description: "There are no more matching players available in Passive Queue. The lobby currently has **%players% players**. You can start with the current player count or dissolve the lobby."
+    StartCurrent: "Start with current players"
+    FindMerge: "Find compatible lobby"
+    Dissolve: "Dissolve lobby"
+    StartedCurrent: "The lobby is starting with its current player count."
+    Dissolved: "The lobby was dissolved."
+    ActionFailed: "This action is no longer available for the lobby."
+  Merge:
+    Title: "Compatible lobby found"
+    Description: "Found **%count%** open lobbies that can be merged with your lobby. Merging moves every member of your lobby into the selected target lobby."
+    Select: "Select target lobby"
+    OptionLabel: "Lobby #%lobbyId% · %host%"
+    OptionDescription: "%players%/%capacity% players · %platform% · %region%"
+    None: "No open PassiveQ lobby currently has enough space while matching every profile, language, and rank rule."
+    Result:
+      MERGED: "Your lobby was successfully merged into lobby **#%targetLobby%**."
+      UNAVAILABLE: "One of the lobbies is no longer available or the target lobby is no longer searching through PassiveQ."
+      NOT_ENOUGH_SPACE: "The target lobby no longer has enough space for every player."
+      INCOMPATIBLE: "The lobbies are no longer compatible due to their profiles, languages, or rank rules."
+  Clan:
+    UseInviteButton: "Use “Invite crew” to invite crew members."
+  Browse:
+    None: "No matching open lobby was found. Create or enable a search profile first."
+    Title: "Matching lobbies · %page%/%pages%"
+    Join: "Join lobby #%lobbyId%"
+    Entry: "#%lobbyId% · %players%/%capacity% · ranks %rankMin%–%rankMax%"
+    Modal:
+      Title: "Find matching lobbies"
+      Game: "Game ID"
+  InviteFriend:
+    Success: "Friend invited."
+    Failed: "Invitation failed. Direct invitations require an accepted friendship."
+    Modal:
+      Title: "Invite a friend"
+      Username: "Friend username"
+  InviteClan:
+    Sent: "Sent **%count%** crew invitations. Further invitations for large crews will be sent in batches."
+    Title: "Select a crew"
+    Description: "Select one of your crews whose game list matches this lobby · page %page%/%pages%."
+    Select: "Select a crew to invite"
+    Option: "%role% · %members% members"
+    None: "You are not in an inviteable crew that has this game in its game list."
+    Unavailable: "This lobby is no longer available for crew invitations."
+    Modal:
+      Title: "Invite a crew"
+      Clan: "Crew ID"
+  Invitation:
+    Title: "Lobby invitation"
+    Description: "**%leader%** invited you to lobby **#%lobbyId%**.\nHost rating: **%leaderRating%**\nInvitation type: **%source%**\nGame: **%game%**\nPlayers: **%playerCount%/%capacity%**\nPlatform: **%platform%**\nRegion: **%region%**\nCommunication languages: **%languages%**\nAllowed ranks: **%ranks%**\n\n**Current players**\n%players%\n\nThis message is updated automatically whenever the lobby changes."
+    Accept: "Join"
+    LeavePartyAndAccept: "Leave party & accept"
+    Decline: "Decline"
+    RankUnknown: "Rank unknown"
+    Source:
+      FRIEND: "Direct invitation"
+      CLAN: "Crew invitation"
+      PASSIVE_QUEUE: "PassiveQ"
+  HostPromotion:
+    Title: "You are the new lobby host"
+    Description: "The previous host did not join in time. You now host lobby #%lobbyId%."
+  Voice:
+    Title: "Lobby ready"
+    InviteUnavailable: "invite unavailable; contact the host"
+    NoPartner:
+      Title: "No partner guild available"
+      Description: "A working voice channel could not currently be created on any partner guild for this lobby. The affected guild managers were informed. Please try again later or notify the MYG team."
+    ReadyExternal: "The lobby is full. Join the partner guild within six minutes: %invite%\nThen open voice channel **%channel%**."
+    ReadyMember: "The lobby is full. Your voice channel is ready: %channel%"
+    Reminder:
+      Title: "One minute left to join"
+      Description: "You have approximately one minute left to join the voice channel for lobby #%lobbyId%."
+    Rejoin:
+      Title: "Voice channel left"
+      Description: "You have two minutes to rejoin the voice channel. Otherwise you will be removed from the lobby."
+      Extend: "Extend deadline by 2 minutes"
+      Extended: "Your deadline was extended once by two minutes."
+      ExtensionUnavailable: "The deadline cannot be extended again or has already expired."
+  Kick:
+    Select: "Remove a player from the lobby"
+    Success: "The player was removed from the lobby."
+    Failed: "The player could not be removed from the lobby."
+    NoReason: "No reason was provided."
+    VoiceJoinTimeout: "You did not join the lobby voice channel within the required time."
+    VoiceRejoinTimeout: "You did not return to the lobby voice channel within the rejoin deadline."
+    Modal:
+      Title: "Remove player from lobby"
+      Reason: "Reason (optional)"
+    Notification:
+      Title: "You were removed from a lobby"
+      Description: "You were removed from lobby **#%lobbyId%**.\n\n**Reason**\n%reason%"
+  Leave:
+    Success: "You left the lobby."
+    Failed: "You could not leave this lobby."
+  LanguageMismatch:
+    Select: "Add language and join lobby"
+  JoinResult:
+    JOINED: "You joined the lobby."
+    LOBBY_NOT_FOUND: "The lobby or invitation was not found."
+    LOBBY_CLOSED: "This lobby is no longer open."
+    PROFILE_MISMATCH: "Your search profile does not match this lobby."
+    PARTY_HOST_REQUIRED: "Only the party host can bring the entire party."
+    PARTY_TOO_LARGE: "There are not enough free slots for your entire party."
+    LANGUAGE_MISMATCH: "You currently do not speak any of the communication languages remaining in this lobby."
+    ALREADY_MEMBER: "You are already a member of this lobby."
+    DATABASE_ERROR: "A database error occurred while joining the lobby."
+  Wizard:
+    NoCommunicationLanguages: "Select at least one of your communication languages."
+    PartyOnlyHost: "You are a party member. Only the party host can create a lobby and bring every member along."
+    PartyTooLarge: "Your party has %partySize% members, but the lobby only has %capacity% slots. Increase the player count first."
+    PartyProfilesMissing: "The following party members must first configure a game profile for this mode and platform: **%players%**."
+    PartyNoCommonLanguage: "The party has no shared communication language from the lobby selection."
+    PartyRanksIncompatible: "The configured ranks of the party members do not satisfy this lobby's regular rank rules."
+    Languages:
+      Title: "Lobby communication languages"
+      Description: "Select every language this lobby can use. The common intersection is reduced whenever a player joins."
+      Select: "Select communication languages"
+    Expired: "This selection has expired. Start the assistant again."
+    InvalidSelection: "This selection does not belong to the current step."
+    LobbyExpired: "This lobby selection has expired."
+    CreateFailed: "The lobby could not be created."
+    Created: "Lobby **#%lobbyId%** for **%mode%** was created. Open “Create lobby” again to manage it."
+    InvalidCapacity: "The player count must be a number."
+    NoGames: "No active games are available."
+    NoModes: "This game has no active mode yet."
+    NoPlatforms: "No platforms have been configured for this mode."
+    NoRegions: "No regions have been configured for this mode."
+    NoRanks: "This mode is skill-based but has no rank definitions."
+    Page: "%title% · Page %page%/%pages%"
+    Description: "Step-by-step configuration · Page %page% of %pages%"
+    CreateProfileDescription: "You do not have a profile for this mode yet. Create it once now · page %page% of %pages%."
+    SelectProfileDescription: "You have multiple profiles. Select the platform profile to use for this lobby · page %page% of %pages%."
+    Navigation:
+      Previous: "← Previous"
+      Next: "More →"
+    Select:
+      Game: "Select game"
+      Mode: "Select mode"
+      Platform: "Select platform"
+      Region: "Select region"
+      Rank: "Select rank"
+      Role: "Select role"
+    Modal:
+      Title: "Create lobby"
+      Capacity: "Player count"
+    Fullstack:
+      Title: "Rank rules for a full team"
+      Description: "This player count allows a full-stack lobby without rank restrictions. Should rank be ignored or should the regular rank rules still apply?"
+      Regular: "Regular rank rules"
+      Unrestricted: "Rank does not matter"
+    PassiveSaved:
+      Title: "PassiveQ profile saved"
+      Failed: "The profile could not be saved."
+      Description: "Mode: **%mode%**\nPlatform: **%platform%**\nRegion: **%region%**\nRank: **%rank%**\nRole: **%role%**"
+
+GameProfile:
+  Manage:
+    title: "Your game profiles"
+    description: "**%count% profiles** · page %page%/%pages%\n\n%profiles%"
+    Entry: "**%game% · %platform%**\nRegion: %region% · rank: %rank% · role: %role%"
+    None: "You have not created any game profiles yet."
+    Configure: "Add / edit profile"
+    Languages: "Communication languages"
+    Select: "Select and edit a game profile"
+    ProfileUnavailable: "This game profile or one of its selection options is no longer available."
+  Confirmation:
+    Title: "Confirm game profile changes"
+    Description: "Game: **%game%**\n\n**Current**\nPlatform: %oldPlatform%\nRegion: %oldRegion%\nRank: %oldRank%\nRole: %oldRole%\n\n**New**\nPlatform: %newPlatform%\nRegion: %newRegion%\nRank: %newRank%\nRole: %newRole%"
+    Confirm: "Save changes"
+    Cancel: "Cancel"
+  Saved: "The game profile for **%game%** on **%platform%** was saved."
+  SavedPassiveEnabled: "The game profile for **%game%** on **%platform%** was saved and automatically enabled for PassiveQ. You can disable it in the PassiveQ settings whenever needed."
+  SaveFailed: "The game profile could not be saved."
+  Languages:
+    title: "Your communication languages"
+    description: "The lower the priority number, the earlier you are considered for matching PassiveQ invitations.\n\n%languages%"
+    Add: "Add / prioritize language"
+    Modal:
+      Title: "Save communication language"
+      Language: "Language or language code"
+      Priority: "Priority"
+  AfterLobby:
+    Title: "Did your game profile change?"
+    Description: "Please check whether your rank, platform, region, or role changed after this lobby."
+    Changed: "Update profile"
+    Unchanged: "No change"
+    ConfirmedUnchanged: "Your saved game profile remains unchanged."
+  Updated:
+    Title: "Game profile updated"
+    Description: "Your current game profile data was saved and will be used for future lobbies and PassiveQ."
+
+PassiveQ:
+  NoGamesSelected: "You have not selected a game for PassiveQ. Enable at least one game profile in the PassiveQ settings first."
+  title: "PassiveQ settings"
+  description: "PassiveQ globally: **%enabled%**\nSync with online status: **%sync%**\nSaved game profiles: **%profiles%**"
+  Title: "PassiveQ settings"
+  Description: "PassiveQ globally: **%enabled%**\nSync with online status: **%sync%**\nSaved game profiles: **%profiles%**"
+  Button:
+    Configure: "Add / edit game profile"
+    Disable: "Disable all PassiveQ"
+    Enable: "Enable all PassiveQ"
+    DisableSync: "Disable online sync"
+    EnableSync: "Enable online sync"
+  Profile:
+    Select: "Select a game profile and toggle PassiveQ"
+    Activated: "PassiveQ was enabled for **%game%** on **%platform%**."
+    Deactivated: "PassiveQ was disabled for **%game%** on **%platform%**."
+  Confirmation:
+    Title: "Confirm PassiveQ game profile"
+  Shortcut:
+    ActiveLobby: "PassiveQ cannot be toggled while you are in an active lobby."
+
+Inbox:
+  Title: "Your MYG inbox"
+  Description: "**%count% messages** · **%unread% unread** · page %page%/%pages%\n\n%messages%"
+  Empty: "Your inbox is empty."
+  Entry: "%status% **%title%** · %date%"
+  UnreadMarker: "🔵"
+  ReadMarker: "⚪"
+  Select: "Open message"
+  Unread: "Unread"
+  Read: "Read"
+  MarkRead: "Mark as read"
+  MarkedRead: "The message was marked as read."
+  NotFound: "This message could not be found."
+  SentAt: "Sent: %date%"
+  Delete: "Delete from inbox"
+  Deleted: "The message was deleted from your inbox."
+
+Party:
+  Kick:
+    Select: "Remove a party member"
+    Success: "The member was removed from the party."
+    Failed: "The member could not be removed from the party."
+  Title: "Your party"
+  Members: "Members: %members%"
+  CreateFailed: "The party could not be created."
+  Left: "You left the party."
+  NotInParty: "You are not in a party."
+  Button:
+    Invite: "Invite friend"
+    Leave: "Leave / disband"
+  Manage:
+    title: "Manage party"
+    description: "Members (%count%):\n%members%%notice%"
+  Invite:
+    Dropdown: "Invite a friend to the party"
+    Success: "The party invitation was sent."
+    Failed: "The invitation could not be sent. Only the host can invite friends who are not already in a party."
+    Modal:
+      Title: "Invite friend to party"
+      Username: "Friend username"
+  Invitation:
+    Title: "Party invitation"
+    Description: "**%host%** invited you to a party. You will only be added after accepting."
+    Accept: "Accept"
+    Decline: "Decline"
+    Accepted: "You joined the party."
+    AcceptedNotification:
+      Title: "Party invitation accepted"
+      Description: "**%user%** accepted your party invitation and joined the party."
+    Declined: "You declined the party invitation."
+    NotAvailable: "This party invitation is no longer available."
+
+Match:
+  OnlyHost: "Only the host can add matches after closing the lobby."
+  NoStatsPending: "No statistic entries are pending."
+  Confirmed: "Match confirmed."
+  Disputed: "The match was marked as disputed for moderation."
+  AllEntered: "All matches for this lobby have been entered."
+  CreateFailed: "The match could not be created."
+  Submitted: "The match was submitted for confirmation. Add another match or finish."
+  Created: "The match was created for the entire lobby. Continue with the configured game statistics."
+  SessionUnavailable: "This match entry session is no longer available."
+  InvalidStat: "Invalid statistic value. Check the expected data type."
+  StatsSaved: "Statistics saved. Continue with the next entries."
+  Button:
+    Add: "Add match"
+    AddAnother: "Add another match"
+    Done: "No more matches"
+    EnterStats: "Enter statistics"
+    NextStats: "Next statistics"
+  StatsModal:
+    Title: "Enter match statistics"
+  Confirmation:
+    Title: "Confirm match result"
+    Description: "Please confirm the submitted result for match #%matchId%."
+    Confirm: "Confirm"
+    Dispute: "Dispute"
+
+Review:
+  NotAvailable: "This review assignment is no longer available."
+  Submitted: "Thank you. Your private feedback is visible only to moderation."
+  SubmitFailed: "The review could not be submitted. Use 1–5 stars and check the assignment."
+  Modal:
+    Title: "Review player"
+    Behavior: "Behavior (1–5)"
+    Teamplay: "Teamplay (1–5)"
+    Reliability: "Reliability (1–5)"
+    Feedback: "Private feedback for moderation"
+  Assignment:
+    Title: "Random player review"
+    Description: "Please review **%target%** from lobby #%lobbyId%."
+    Button: "Review player"
+
+Admin:
+  Panel:
+    Title: "MatchYourGame admin panel"
+    Description: "Your role: **%role%**\nBot online: **%uptime%**\n\nUsers: **%users%**\nGuilds: **%guilds%** (%partners% partners)\nActive lobbies: **%lobbies%**\nActive parties: **%parties%**\nGames/modes: **%games%**"
+    Users: "Manage users"
+    Guilds: "Manage guilds"
+    Invite: "Invite user"
+    Lobbies: "Active lobbies"
+    Parties: "Active parties"
+    Games: "Manage games"
+    Broadcast: "Send broadcast"
+    NoPermission: "Your role does not permit this action."
+  Delivery:
+    SILENT: "Silent – MYG inbox only"
+    DIRECT_DM: "Direct – inbox and Discord DM"
+  Broadcast:
+    Sent: "The broadcast was saved for **%count% users**. Delivery: **%delivery%**."
+    Failed: "The broadcast could not be saved."
+    Modal:
+      Title: "Broadcast to all users"
+      EmbedTitle: "Message title"
+      Message: "Message"
+      Delivery: "Delivery method"
+  ActiveLobbies:
+    Title: "Active lobbies"
+    Description: "**%count% lobbies** · page %page%/%pages%\n\n%entries%"
+    None: "There are no active lobbies."
+    Entry: "**#%id%** · %game% · %players%/%capacity% · %status% · Host: %host%"
+  ActiveParties:
+    Title: "Active parties"
+    Description: "**%count% parties** · page %page%/%pages%\n\n%entries%"
+    None: "There are no active parties."
+    Entry: "**#%id%** · Host: %host% · %count% users\n%members%"
+  Games:
+    Title: "Manage games and modes"
+    Description: "**%count% entries** · page %page%/%pages%\n\n%games%"
+    None: "No games have been configured."
+    Entry: "**#%id% · %name%** · Active: %active% · Skillbased: %skillbased% · Main game: %parent%\nPassiveQ players: **%passiveUsers%** · Open lobbies: **%openLobbies%**"
+    Select: "Select a game or mode"
+    Create: "Create game / mode"
+    Edit: "Edit"
+    Options: "Selection values"
+    OptionsTitle: "Platforms, regions, ranks, and roles"
+    Platforms: "Platforms (comma-separated)"
+    Regions: "Regions (comma-separated)"
+    Ranks: "Ranks in ascending order (comma-separated)"
+    Roles: "Roles (comma-separated)"
+    Detail: "ID: **%id%**\nMain game: **%parent%**\nSkillbased: **%skillbased%**\nActive: **%active%**\n\nPassiveQ players: **%passiveUsers%**\nOpen lobbies: **%openLobbies%**"
+    NotFound: "This game was not found."
+    CreateTitle: "Create game or mode"
+    EditTitle: "Edit game"
+    Name: "Name"
+    Parent: "Main game ID (0 = main game)"
+    Skillbased: "Skillbased (true/false)"
+    Active: "Active (true/false)"
+    InvalidBoolean: "Use true or false for Skillbased and Active."
+    Saved: "The game was saved."
+    SaveFailed: "The game could not be saved."
+  Command:
+    Unauthorized: "This command is available only to administrators on the authorized guild."
+    InternalError: "The command could not be completed because of an internal error."
+  Game:
+    CreateFailed: "The game could not be created. Check the main-game ID in particular."
+    Created: "Game **%game%** was created with ID **%gameId%** and **%statistics%** statistic definition(s)."
+    Configured: "The selection values for **%game%** were updated."
+  Review:
+    NonePending: "No review texts are currently waiting for moderation."
+    PendingTitle: "**Pending reviews – page %page%/%pages%**"
+    Moderated: "Review **%assignmentId%** was moderated with **%stars%** stars."
+    NotFound: "Review not found or not submitted yet."
+  Users:
+    Title: "MYG user management"
+    Description: "**%count% accounts** · page %page%/%pages%\n\n%users%"
+    Entry: "• **%username%** · %discord% · %rating%"
+    None: "No accounts were found."
+    Select: "Open user profile"
+    NotFound: "This user was not found."
+    Detail:
+      title: "%username%"
+      description: "MYG ID: **%userId%**\nDiscord: **%discord%** (`%discordId%`)\nRole: **%role%**\nLanguage: **%language%**\nCreated: %createdAt%\nRating: **%rating%**\nBanned: **%banned%**\n\nPassiveQ globally: **%passive%**\nOnline sync: **%sync%**\nEnabled PassiveQ games: %passiveGames%\nParty: %party%\nLobby: %lobby%\n\n**Warnings**\n%warnings%\n\n**Friends**\n%friends%"
+    Reviews:
+      Button: "Individual reviews"
+      Title: "Reviews for %username%"
+      Description: "**%count% reviews** · page %page%/%pages%\n\n%reviews%"
+      None: "No reviews have been submitted for this user."
+      Entry: "**#%id% · %reviewer% · Lobby #%lobby%**\nBehavior %behavior%/5 · Teamplay %teamplay%/5 · Reliability %reliability%/5 · Moderation %moderation%/5\nFeedback: %feedback%"
+    Role:
+      Select: "Change system role"
+      Success: "The system role was updated."
+      Failed: "You are not allowed to assign this system role."
+    Unban:
+      Button: "Unban early"
+      Success: "The user was unbanned early."
+      Failed: "The user could not be unbanned."
+    Warning:
+      Button: "Warn"
+      Success: "The warning was saved and sent to the user."
+      Failed: "The warning could not be saved."
+      Modal:
+        Title: "Warn user"
+        Reason: "Warning reason"
+      Notification:
+        Title: "You received a MYG warning"
+        Description: "**Reason**\n%reason%"
+    Dm:
+      Button: "Send message"
+      Sent: "The message was saved. Delivery: **%delivery%**."
+      Failed: "The message could not be saved."
+      Modal:
+        Title: "Send message to user"
+        EmbedTitle: "Embed title"
+        Message: "Message"
+        Delivery: "Delivery method"
+    Ban:
+      Button: "Ban user"
+      Success: "The user was banned and removed from active features."
+      Failed: "The user could not be banned."
+      InvalidDuration: "Invalid duration. Use for example 30m, 12h, 7d, 4w, or forever."
+      Modal:
+        Title: "Ban user"
+        Duration: "Duration (for example 7d or forever)"
+        Reason: "Reason"
+  Guilds:
+    Title: "MYG guild management"
+    Description: "**%count% guilds** · page %page%/%pages%\n\n%guilds%"
+    Entry: "• **%name%** · %accounts% accounts · partner: %partner%"
+    None: "No configured guilds were found."
+    Select: "Open guild"
+    NotFound: "This guild could not be found."
+    Detail:
+      title: "%name%"
+      description: "Guild ID: `%guildId%`\nDiscord host: **%host%**\nMYG manager: **%manager%**\nLanguage: **%language%**\nConfigured: %addedAt%\n\nCreated accounts: **%accounts%**\nAverage rating: **%rating%**\nPartner guild: **%partner%**\nPartner program status: **%partnerStatus%**\nVoice category: %voiceCategory%"
+    Partner:
+      Button: "Make partner guild"
+      InviteButton: "Invite to partner program"
+      Invited: "The MYG manager was invited to the partner program without requiring the threshold."
+      InviteFailed: "The guild could not be invited. An application or invitation may already be pending."
+      Success: "The guild was activated as a partner guild."
+      Failed: "The partner status could not be saved."
+      Already: "This guild is already a partner guild."
+      Unavailable: "The guild is no longer reachable or has not been configured."
+      CreateCategoryFailed: "The MYG voice category could not be created. Check the bot permissions."
+
+Clear:
+  NoAccount: "No MatchYourGame account was found for this Discord account."
+  PrivateOnly: "Please use `/clear` in your private chat with the bot."
+  Failed: "The bot chat could not be cleared completely. Please try again."
+
+AccountDeletion:
+  Modal:
+    Title: "Permanently anonymize account"
+    Confirmation: "Enter DELETE to confirm"
+  InvalidConfirmation: "The confirmation did not match. Nothing was changed."
+  Success: "Your account was anonymized. Friends, crews, and personal settings were removed; match statistics remain anonymously available."
+  Failed: "The account could not be anonymized."
+
+Report:
+  Menu:
+    title: "Reports and feedback"
+    description: "Would you like to report a player, submit a bug, or send general feedback?"
+    Player: "Report player"
+    Bug: "Report bug"
+    Feedback: "Send feedback"
+  Player:
+    Title: "Report player"
+    Username: "Player username"
+    Reason: "Reason and description"
+    NotFound: "This player could not be found."
+    NoContact: "You cannot report this player because no previous contact between you could be verified."
+  Bug:
+    Title: "Report bug"
+    Subject: "Short title"
+    Details: "Description and reproduction steps"
+  Feedback:
+    Title: "Send feedback"
+    Details: "Your feedback"
+    ChannelSubject: "General feedback"
+  Channel:
+    Title: "New %type% report"
+    Ban: "Ban from MYG"
+    Contact: "Contact user"
+    Resolve: "Mark completed"
+    Reject: "Reject"
+    Delete: "Delete feedback"
+  Contact:
+    OpenedTitle: "The MYG team wants to discuss your bug report"
+    OpenedDescription: "Use **Reply** to send a message to the team. The entire conversation is displayed in this embed."
+    TeamTitle: "Message from the MYG team"
+    TeamLabel: "MYG team"
+    UserLabel: "You"
+    Reply: "Reply"
+    End: "End conversation"
+    ReplyTitle: "Reply to the MYG team"
+    ReplyMessage: "Your message"
+    ReplySent: "Your reply was sent to the MYG team."
+    Unavailable: "This conversation is no longer available."
+    EndedForTeam: "The user ended the DM conversation."
+  Finished:
+    ResolvedTitle: "Your report was completed"
+    RejectedTitle: "Your report was rejected"
+  Ban:
+    Title: "You have been banned from MatchYourGame"
+    Description: "Duration: **%until%**\nReason: %reason%"
+    Forever: "Forever"
+  Moderation:
+    NotAvailable: "This report is no longer available."
+    BanTitle: "Ban from MYG"
+    Duration: "Duration (30m, 12h, 7d, 4w or forever)"
+    Reason: "Reason"
+    ResolveTitle: "Complete report"
+    RejectTitle: "Reject report"
+    UserMessage: "Message to the user"
+    InvalidDuration: "Invalid duration. Use 30m, 12h, 7d, 4w or forever."
+    BanSuccess: "The user was banned from MYG."
+    BanFailed: "The ban could not be saved."
+    Updated: "The report was updated."
+    ContactBugOnly: "Contact channels are only available for bug reports."
+    ContactExists: "A contact channel already exists:"
+    CategoryMissing: "The report channel must be inside a category."
+    ContactIntro: "Support conversation for report **#%reportId%**. Team messages in this channel are forwarded to the user by DM."
+    ContactCreated: "Contact channel created:"
+    ContactFailed: "The contact channel could not be created."
+  Sent: "Your report was submitted successfully. Thank you."
+  Unavailable: "The report could not be submitted right now. Please notify the team."
+
+ProjectInvite:
+  Modal:
+    Title: "Invite Discord user"
+    Username: "Discord username"
+    Language: "Invitation language"
+  Message:
+    Title: "Invitation to MatchYourGame"
+    Description: "You have been personally invited to join MatchYourGame. Would you like to create your free MYG account now?"
+    Accept: "Yes, create account"
+    Decline: "No"
+  Decline:
+    Modal:
+      Title: "Decline invitation"
+      Reason: "Why do you not want to join?"
+    Confirmed: "Thank you for your feedback. It was forwarded to the project lead."
+    Notification:
+      Title: "MatchYourGame invitation declined"
+      Description: "**%username%** (`%discordId%`) declined the invitation.\n\n**Reason**\n%reason%"
+
+PartnerProgram:
+  Invalid: "This partner-program action is not permitted or is no longer current."
+  Eligible:
+    Title: "Your guild can become an MYG partner"
+    Description: "**%guild%** has reached the threshold of **%count% created MYG accounts**. You can now apply for the partner-guild program."
+    Apply: "Apply as partner guild"
+  ManualInvite:
+    Title: "Invitation to the MYG partner program"
+    Description: "An MYG admin invited **%guild%** to the partner-guild program without requiring the normal user threshold. You can now submit an application."
+  Application:
+    Title: "Partner-guild application"
+    Note: "Optional message to the MYG team"
+    Sent: "The application was submitted. All MYG admins were notified."
+  Admin:
+    Title: "New partner-guild application"
+    Description: "Guild: **%guild%** (`%guildId%`)\nMYG manager: **%manager%**\n\n**Message**\n%note%"
+    Approve: "Approve application"
+    Reject: "Reject application"
+    Approved: "The application was approved. The guild manager must now confirm activation."
+    Rejected: "The application was rejected."
+  Confirmation:
+    Title: "Partner-guild approval received"
+    Description: "The application for **%guild%** was approved by an MYG admin. Confirm participation so the bot can verify permissions and configure the voice category."
+    Confirm: "Confirm participation"
+    MissingPermissions: "Activation is not possible yet. The bot is missing: **%permissions%**. Grant these permissions and confirm again."
+    Success: "The guild was successfully activated as a partner guild."
+    Failed: "The partner guild could not be activated because of a Discord or database error. You received the details."
+  Rejected:
+    Title: "Partner-guild application rejected"
+    Description: "The application for **%guild%** was rejected. An MYG admin can send another invitation later."
+  Problem:
+    Title: "Problem with your MYG partner guild"
+    Description: "A problem occurred while provisioning a lobby on **%guild%**. The bot is automatically searching for another partner guild.\n\n**Problem**\n%problem%"
+  ActivationProblem:
+    Title: "Partner-guild activation unavailable"
+    Description: "**%guild%** could not yet be activated as a partner guild. Resolve the following problem and confirm participation again.\n\n**Problem**\n%problem%"
+  PermissionProblem: "The following required bot permissions are missing: %permissions%"
+  Permissions:
+    VIEW_CHANNEL: "View Channels"
+    MANAGE_CHANNEL: "Manage Channels"
+    MANAGE_PERMISSIONS: "Manage Permissions"
+    CREATE_INSTANT_INVITE: "Create Invites"
+    KICK_MEMBERS: "Kick Members"
+    VIEW_AUDIT_LOGS: "View Audit Log"
+  Problems:
+    MissingPermissions: "Required permissions are missing: **%permissions%**"
+    VoiceCreate: "The voice channel could not be created: %error%"
+    Permissions: "Channel permissions could not be assigned or verified for every lobby member. Affected Discord IDs: %users%"
+    InviteCreate: "The channel invite, including application bypass, could not be created: %error%"
+    ChannelMissing: "The created voice channel no longer existed during final verification."
+    GuildUnavailable: "The bot is no longer on the guild or can no longer access it."
+    CategoryMissing: "The configured MYG voice category was deleted or is no longer accessible."
+
+Tutorial:
+  Title: "Welcome to MatchYourGame"
+  Description: "**1. Configure your profile**\nOpen your pinned management message. Under **Game profiles**, configure platform, region, and—where required—rank and role for each game. Under **Edit profile**, manage your name, message language, and communication languages.\n\n**2. Friends, crews, and parties**\nAdd friends and create a party before entering a lobby. Only the party host creates or joins a lobby and brings every member. Crews let you manage members and shared games.\n\n**3. Find a lobby**\nCreate a lobby yourself or enable **PassiveQ** for configured game profiles. PassiveQ invitations account for game, platform, region, rank, languages, and previous ratings. Direct invitations are available only between friends.\n\n**4. Lobby and voice channel**\nWhen the lobby is full, MatchYourGame creates a private voice channel on a suitable partner guild. Join within the displayed deadline. Leaving and rejoin deadlines are managed automatically after the lobby starts.\n\n**5. After playing**\nThe host enters every played match and the other players confirm the results. You may then receive a random player-review assignment; manual reviews are not available.\n\n**6. Help and safety**\nUse **Report / Feedback** to report players or bugs and to send feedback. Use `/tutorial` at any time to receive this guide again by DM."
+  Sent: "The tutorial was sent to you by DM."
+  NoAccount: "You need a MatchYourGame account first."
