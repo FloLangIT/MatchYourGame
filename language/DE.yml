@@ -1,52 +1,937 @@
 NewGuild:
   NoAccountYet:
-    title: "MatchYourGame joined your guild!"
-    description: "Welcome to MatchYourGame!\nThe bot was added to **%guildName%**\n\nCurrently you didn't have an account yet. Please create one by using the button below, or transfer managing to someone else.\nIf you transfer managing, you will never have access to the guild admin panel.\n\nIf more than 30 users registered by your sign up button in discord channel, you will receive an invite to your our partner program."
+    title: "MatchYourGame ist deiner Guild beigetreten!"
+    description: "Willkommen bei MatchYourGame!\nDer Bot wurde zu **%guildName%** hinzugefügt.\n\nDu besitzt aktuell noch keinen Account. Erstelle über den Button einen Account oder übertrage die Guild-Verwaltung an eine andere Person.\nWenn du die Verwaltung überträgst, erhältst du keinen Zugriff auf die Guild-Verwaltung.\n\nSobald sich genügend Nutzer über den Registrierungs-Channel deiner Guild angemeldet haben, kann deine Guild am Partnerprogramm teilnehmen."
     Button:
-      TransferManage: "Transfer guild manage"
+      TransferManage: "Guild-Verwaltung übertragen"
   SetupGuild:
-    title: "MatchYourGame joined your guild!"
-    description: "Welcome to MatchYourGame!\nThe bot was added to **%guildName%**\n\nYou need to setup your guild before the bot can be used by your users.\n\nPlease use the button below to setup your guild."
-    Button: "Setup guild"
+    title: "MatchYourGame ist deiner Guild beigetreten!"
+    description: "Willkommen bei MatchYourGame!\nDer Bot wurde zu **%guildName%** hinzugefügt.\n\nBevor deine Mitglieder den Bot verwenden können, muss die Guild eingerichtet werden.\n\nNutze dafür den Button unter dieser Nachricht."
+    Button: "Guild einrichten"
     Modal:
-      Title: "Setup %guildName%"
-      Language: "Guild language"
+      Title: "%guildName% einrichten"
+      Language: "Guild-Sprache"
     VoiceCategory: "🤝・MYG Voice・🤝"
     CreateProfileChannel: "┃👤┃create-profile"
   SetupCompleted:
-    title: "Setup completed"
-    description: "Your guild is done! Your users can now create accounts on your guild %textChannel% and connect with other players.\n\nAfter %partnerGuildUserCount% User creates an account on your guild, your guild could be used for voice channel, if you want.\nThis condition could be changed. We will inform you about something like that.\n\nJoin the **Bearhell Discord** to get MatchYourGame Support and stay up to date. %discordInvite%"
+    title: "Einrichtung abgeschlossen"
+    description: "Deine Guild ist eingerichtet. Mitglieder können jetzt über %textChannel% Accounts erstellen und andere Spieler finden.\n\nNachdem %partnerGuildUserCount% Nutzer über deine Guild einen Account erstellt haben, kann sie auf Wunsch als Partner-Guild für Voice-Channels verwendet werden. Falls sich diese Voraussetzung ändert, informieren wir dich.\n\nTritt dem **Bearhell Discord** bei, um MatchYourGame-Support und Neuigkeiten zu erhalten: %discordInvite%"
   MissingPermissions:
-    title: "Missing permissions"
-    description: "The bot has not enough permissions to setup this guild.\n\nThe bot need MANAGE_CHANNEL and SEND_MESSAGE permission."
+    title: "Fehlende Berechtigungen"
+    description: "Der Bot besitzt nicht genügend Berechtigungen, um diese Guild einzurichten.\n\nBenötigt werden **Kanäle verwalten** und **Nachrichten senden**."
   GuildNotFound:
-    title: "Guild not found!"
-    description: "The guild you are trying to setup was not found.\nMake sure the bot is in the guild you want to setup."
+    title: "Guild nicht gefunden"
+    description: "Die einzurichtende Guild wurde nicht gefunden.\nStelle sicher, dass sich der Bot weiterhin auf dieser Guild befindet."
+
+GuildManager:
+  List:
+    title: "Deine Guilds"
+    description: "Du verwaltest **%count% Guilds** · Seite %page%/%pages%\n\n%guilds%"
+    Entry: "• **%name%** · Partner-Guild: %partner%"
+    Select: "Guild auswählen"
+  Detail:
+    title: "%name% verwalten"
+    description: "**Discord-Guild**\nGuild-ID: `%guildId%`\nGuild-Host: %owner%\nMitglieder: **%members%**\nGuild-Sprache: **%language%**\nEingerichtet: %addedAt%\nRegistrierungs-Channel: %textChannel%\n\n**MatchYourGame**\nÜber diese Guild erstellte Accounts: **%accounts%**\nDurchschnittliche Nutzerbewertung: **%rating%**\nFortschritt zum Partnerprogramm: **%accounts%/%threshold%** · noch **%remaining%** Accounts\nPartner-Guild: **%partner%**\nBewerbungsstatus: **%partnerStatus%**\nBot-Berechtigungen: %permissions%\nVoice-Kategorie: %voiceCategory%\nKommunizierte Lobbys auf dieser Partner-Guild: **%hostedLobbies%**\nDerzeit aktive Voice-Lobbys: **%activeLobbies%**"
+  NotFound: "Du verwaltest diese Guild nicht mehr oder sie wurde nicht gefunden."
+  DiscordUnavailable: "Guild aktuell nicht erreichbar"
+  PermissionsReady: "Alle benötigten Rechte vorhanden"
+  PermissionsMissing: "Fehlend: %permissions%"
+  Partner:
+    Withdraw: "Partnerstatus zurückziehen"
+    Withdrawn: "Der Partnerstatus wurde zurückgezogen. Bereits laufende Lobbys bleiben davon unberührt."
+    WithdrawFailed: "Der Partnerstatus konnte nicht zurückgezogen werden."
+  Transfer:
+    Button: "Guild-Manager übertragen"
+    Title: "Guild-Manager übertragen"
+    Username: "MYG-Benutzername des neuen Managers"
+    UserNotFound: "Es wurde kein aktiver MYG-Account mit diesem Benutzernamen gefunden."
+    TargetUnavailable: "Der neue Manager konnte nicht per DM erreicht werden. Die Verwaltung wurde nicht übertragen."
+    SameUser: "Du bist bereits der Manager dieser Guild."
+    NotAuthorized: "Du darfst die Verwaltung dieser Guild nicht übertragen oder einrichten."
+    Failed: "Die Guild-Verwaltung konnte nicht übertragen werden."
+    Success: "Die Guild-Verwaltung wurde an **%username%** übertragen."
+    Notification:
+      Title: "Guild-Verwaltung übertragen"
+      Description: "Dir wurde die MYG-Verwaltung für **%guild%** übertragen. Du findest die Guild-Verwaltung ab sofort in deiner Management-Nachricht."
+  Status:
+    NOT_ELIGIBLE: "Schwellwert noch nicht erreicht"
+    INVITED: "Bewerbung möglich"
+    SUBMITTED: "Bewerbung wird geprüft"
+    ADMIN_APPROVED: "Freigegeben – Bestätigung ausstehend"
+    ACTIVE: "Aktiv"
+    REJECTED: "Abgelehnt – erneute Bewerbung möglich"
+    WITHDRAWN: "Zurückgezogen – erneute Bewerbung möglich"
 
 CreateUser:
-  title: "Finde dein perfektes Match"
-  description: "Erstelle deinen Account für MatchYourGame um andere zu finden.\n\nStelle sicher das der Bot dir private Nachrichten senden kann.\nNach der Erstellung läuft der Rest im Privat-Chat weiter."
+  title: "Finde deine passenden Mitspieler"
+  description: "Erstelle deinen MatchYourGame-Account, um passende Mitspieler zu finden.\n\nStelle sicher, dass dir der Bot private Nachrichten senden kann. Nach der Erstellung verwaltest du deinen Account vollständig im privaten Chat mit dem Bot."
   Button: "Account erstellen"
   Modal:
-    Title: "Create MatchYourGame account"
-    Username: "Username"
-    Language: "Language"
+    Title: "MatchYourGame-Account erstellen"
+    Username: "Benutzername"
+    Language: "Sprache"
   AccountCreated:
-    title: "Account successfully created!"
-    description: "You can now use the bot in your private chat."
+    title: "Account erfolgreich erstellt"
+    description: "Du kannst den Bot jetzt über den privaten Chat verwenden."
   PrivateChatDisable:
-    title: "Private chat disabled!"
-    description: "Please enable private chat in your privacy settings, the bot need to send you messages."
+    title: "Private Nachrichten deaktiviert"
+    description: "Aktiviere private Nachrichten in deinen Datenschutzeinstellungen, damit dir der Bot schreiben kann."
   YouAlreadyHaveAccount:
-    title: "You already have an account!"
-    description: "Use private chat to manage your account settings."
+    title: "Du besitzt bereits einen Account"
+    description: "Verwende den privaten Chat mit dem Bot, um deinen Account zu verwalten."
+  AccountCreationRestricted:
+    title: "Account-Erstellung eingeschränkt"
+    description: "MatchYourGame befindet sich aktuell in einer Vorab-Testphase. Deshalb ist die Account-Erstellung vorübergehend eingeschränkt. Neuigkeiten erhältst du auf dem Discord: %discordInvite%\n\nWenn du am Test teilnehmen möchtest, wende dich dort an das Team."
+  Banned: "Du bist aktuell von MatchYourGame ausgeschlossen und kannst keinen neuen Account erstellen."
 
 UserProfile:
-  title: "Your MYG profile"
-  description: "User ID: %userId%\nUsername: %username%\nCreated at: %createdAt%"
+  title: "Dein MYG-Profil"
+  description: "User-ID: %userId%\nBenutzername: %username%\nErstellt: %createdAt%\nDurchschnittliche Bewertung: **%rating%**\nKommunikationssprachen: %communicationLanguages%\nPassiveQ: **%passiveStatus%** (%passiveGamesLabel%)\nNachrichten: **%inboxNotice%**\n\nParty: %party%\nFreunde aktiv: %activeFriends%/%totalFriends%"
+  PassiveGames:
+    One: "1 Spiel"
+    Other: "%count% Spiele"
   Button:
-    EditProfile: "Edit profile"
-    PassiveQ: "PassiveQ configuration"
-    CreateLobby: "Create lobby"
-    Friends: "Friends"
+    EditProfile: "Profil bearbeiten"
+    PassiveQ: "PassiveQ verwalten"
+    EnablePassiveQ: "PassiveQ aktivieren"
+    DisablePassiveQ: "PassiveQ deaktivieren"
+    CreateLobby: "Lobby erstellen"
+    ManageLobby: "Aktive Lobby verwalten"
+    GameProfiles: "Spielprofile"
+    BrowseLobbies: "Passende Lobbys"
+    Party: "Party"
+    PartyCreate: "Party erstellen"
+    PartyManage: "Party verwalten"
+    Friends: "Freunde"
     Crews: "Crews"
+    Report: "Report / Feedback"
+    ProjectInvite: "Nutzer einladen"
+    AdminUsers: "Nutzerverwaltung"
+    AdminGuilds: "Guild-Verwaltung"
+    AdminPanel: "Admin Panel"
+    GuildManager: "Guild verwalten"
+    Inbox: "Inbox"
+    InboxUnread: "Inbox (%count% neu)"
+    Back: "Zurück"
+  InboxStatus:
+    None: "Keine neuen Nachrichten"
+    Unread: "%count% neue Nachrichten"
+  PartyStatus:
+    None: "Keine Party"
+    Active: "In Party (%count% User)"
+  Edit:
+    title: "Profil bearbeiten"
+    description: "Benutzername: **%username%**\nNachrichtensprache: **%messageLanguage%**\nKommunikationssprachen: **%communicationLanguages%**\nFreundschaftsanfragen: **%friendRequestPolicy%**"
+    Button:
+      Username: "Benutzername ändern"
+      CommunicationLanguages: "Kommunikationssprachen"
+      DeleteAccount: "Account löschen"
+    Select:
+      MessageLanguage: "Nachrichtensprache auswählen"
+      FriendRequests: "Wer darf Freundschaftsanfragen senden?"
+    FriendRequests:
+      EVERYONE: "Jeder"
+      FRIENDS_OF_FRIENDS: "Nur Freunde von Freunden"
+    UsernameModal:
+      Title: "Benutzername ändern"
+      Username: "Neuer Benutzername"
+      Unavailable: "Dieser Benutzername ist ungültig oder bereits vergeben."
+    InvalidLanguage: "Die Sprache oder Priorität ist ungültig."
+  Crews:
+    title: "Deine Crews"
+    description: "Du bist in %count% Crews · Seite %page%/%pages%.\n\n%crews%"
+    Entry: "• **%name%** · %role% · %members% Mitglieder"
+    None: "Du bist aktuell in keiner Crew."
+    Select: "Crew auswählen"
+    ActionFailed: "Diese Crew-Aktion ist nicht erlaubt oder nicht mehr verfügbar."
+    Create:
+      Button: "Crew erstellen"
+      Title: "Crew erstellen"
+      Name: "Crewname"
+      Failed: "Die Crew konnte nicht erstellt werden. Der Name ist möglicherweise bereits vergeben."
+    Role:
+      LEADER: "Leader"
+      ADMIN: "Admin"
+      MODERATOR: "Moderator"
+      MEMBER: "Mitglied"
+    Actions:
+      Invite: "Mitglied einladen"
+      Members: "Mitglieder verwalten"
+      Games: "Spieleliste"
+      Rename: "Umbenennen"
+      Delete: "Crew löschen"
+      Leave: "Crew verlassen"
+      Kick: "Mitglied kicken"
+    Detail:
+      title: "%name%"
+      description: "Crew-ID: %id%\nLeader: **%owner%**\nDeine Rolle: **%role%**\nErstellt: %createdAt%\nMitglieder: **%memberCount%**\n\n**Mitgliederliste**\n%members%"
+    Members:
+      title: "Mitglieder von %name%"
+      description: "Wähle ein Mitglied aus, um es zu verwalten · Seite %page%/%pages%."
+      Select: "Mitglied auswählen"
+      ChangeRole: "Neue Rolle auswählen"
+    Member:
+      title: "%username% verwalten"
+      description: "Aktuelle Rolle: **%role%**"
+    Games:
+      title: "Spieleliste von %name%"
+      description: "Aktivierte Spiele: **%games%**\n\nWähle ein Spiel aus, um es hinzuzufügen oder zu entfernen · Seite %page%/%pages%."
+      Select: "Spiel aktivieren oder deaktivieren"
+      None: "Keine"
+    Invite:
+      Title: "Crew-Mitglied einladen"
+      Username: "Benutzername"
+      Sent: "Die Crew-Einladung wurde verschickt."
+      Failed: "Die Einladung konnte nicht verschickt werden. Prüfe Benutzer, Mitgliedschaft und deine Berechtigung."
+    Invitation:
+      Title: "Crew-Einladung"
+      Description: "**%inviter%** hat dich in die Crew **%clan%** eingeladen."
+      Accept: "Annehmen"
+      Decline: "Ablehnen"
+      Accepted: "Du bist der Crew beigetreten."
+      Declined: "Du hast die Crew-Einladung abgelehnt."
+      Unavailable: "Diese Crew-Einladung ist nicht mehr verfügbar."
+    MemberJoined:
+      Title: "Neues Crew-Mitglied"
+      Description: "**%user%** ist der Crew **%clan%** beigetreten."
+    Rename:
+      Title: "Crew umbenennen"
+      Failed: "Die Crew konnte nicht umbenannt werden. Der Name ist möglicherweise bereits vergeben."
+    Delete:
+      Title: "Crew wirklich löschen?"
+      Description: "Die Crew, ihre Mitglieder und ihre Spieleliste werden dauerhaft gelöscht."
+      Confirm: "Endgültig löschen"
+  Friends:
+    title: "Deine Freunde"
+    description: "Du hast %count% Freunde · Seite %page%/%pages%. Wähle einen Freund aus, um das Profil aufzurufen oder die Freundschaft zu entfernen."
+    Dropdown: "Freund auswählen"
+    Button:
+      AddFriend: "Freund hinzufügen"
+    Profile:
+      title: "%username%"
+      description: "User-ID: %userId%\nDabei seit: %createdAt%\nDurchschnittliche Bewertung: **%rating%**\nMit dir befreundet: %friendsSince%\nZuletzt in einer Lobby: %lastPlayed%\n\n**Aktivierte PassiveQ-Spiele**\n%passiveGames%"
+      Remove: "Freund entfernen"
+      Never: "Noch nie"
+      None: "Keine"
+    AddFriend:
+      Modal:
+        Title: "Freund hinzufügen"
+        Username: "Benutzername des Freundes"
+      CantAddSelf:
+        title: "Du kannst dich nicht selbst hinzufügen"
+        description: "Wähle einen anderen Nutzer aus oder finde über PassiveQ beziehungsweise eine Lobby neue Mitspieler."
+      AlreadyAdded:
+        title: "Freundschaftsanfrage bereits gesendet"
+        description: "Du hast **%username%** bereits eine Freundschaftsanfrage gesendet."
+      AlreadyFriends:
+        title: "%username% ist bereits dein Freund"
+        description: "Du kannst dieselbe Person nicht mehrfach als Freund hinzufügen."
+      RequestSent:
+        title: "Freundschaftsanfrage gesendet"
+        description: "Die Freundschaftsanfrage an **%username%** wurde gesendet."
+      FriendsOfFriendsOnly:
+        title: "Freundschaftsanfrage nicht möglich"
+        description: "**%username%** akzeptiert nur Freundschaftsanfragen von Freunden von Freunden. Ihr habt aktuell keinen gemeinsamen bestätigten Freund."
+
+FriendRequest:
+  RequestReceive:
+    title: "Du hast eine Freundschaftsanfrage von **%requester%** erhalten"
+    description: "**%requester%** hat dir eine Freundschaftsanfrage gesendet.\n\nAntworte über die Buttons unter dieser Nachricht. Wenn du die Anfrage ignorierst, wird die Nachricht gelöscht, ohne **%requester%** zu benachrichtigen."
+    Button:
+      Accept: "Annehmen"
+      Deny: "Ablehnen"
+      Ignore: "Ignorieren"
+  AcceptRequest:
+    title: "**%receiver%** hat deine Freundschaftsanfrage angenommen"
+    description: "**%receiver%** hat deine Freundschaftsanfrage vom %timestamp% angenommen."
+  ConfirmAcceptToReceiver:
+    title: "Du bist jetzt mit **%requester%** befreundet"
+    description: "Du kannst **%requester%** jetzt auf deiner Freundeseite sehen und einfacher in Lobbys, Partys oder Crews einladen."
+  DenyRequest:
+    title: "Freundschaftsanfrage von **%receiver%** abgelehnt"
+    description: "**%receiver%** hat deine Freundschaftsanfrage von %timestamp% abgelehnt."
+  ConfirmDenyToReceiver:
+    title: "Freundschaftsanfrage abgelehnt"
+    description: "Du hast die Freundschaftsanfrage von **%requester%** abgelehnt."
+  Interact:
+    NoAccount: "Für diesen Discord-Account wurde kein MatchYourGame-Konto gefunden."
+    NoFriendRequest:
+      title: "Keine Freundschaftsanfrage"
+      description: "Diese Freundschaftsanfrage ist nicht mehr verfügbar."
+    AlreadyAccepted:
+      title: "Bereits angenommen"
+      description: "Du hast diese Freundschaftsanfrage bereits angenommen."
+    Ignored:
+      title: "Freundschaftsanfrage ignoriert"
+      description: "Die Anfrage von **%requester%** wurde ignoriert. Der Absender wird nicht benachrichtigt."
+
+General:
+  "On": "AN"
+  "Off": "AUS"
+  Previous: "Zurück"
+  Next: "Weiter"
+  InvalidInput: "Ungültige Eingabe: %error%"
+  NoUserWithUsername:
+    title: "Nutzer nicht gefunden"
+    description: "Auf MatchYourGame ist kein Nutzer mit dem Benutzernamen **%username%** registriert. Prüfe die Schreibweise und versuche es erneut."
+  Button:
+    DeleteMessage: "Nachricht löschen"
+
+Rating:
+  None: "Noch keine Bewertungen"
+
+Lobby:
+  Closed: "Die Lobby wurde geschlossen. Die Matcherfassung und die zufälligen Bewertungen wurden gestartet."
+  AutoClosed:
+    Title: "Lobby automatisch geschlossen"
+    Description: "Da sich kein Spieler mehr im Lobby-Voice-Channel befindet, wurde die Lobby geschlossen. Bitte erfasse jetzt die gespielten Matches."
+  InvitationDeclined: "Einladung abgelehnt."
+  InvitationUnavailable: "Diese Lobby-Einladung ist nicht mehr verfügbar."
+  OnlyHostClose: "Nur der Host kann diese Lobby schließen."
+  OnlyHostConfigure: "Nur der Host kann die Lobby-Queues konfigurieren."
+  Button:
+    Close: "Lobby schließen"
+    Leave: "Lobby verlassen"
+    InviteFriend: "Freund einladen"
+    InviteClan: "Crew einladen"
+    ActivatePassive: "PassiveQ aktivieren"
+    DeactivatePassive: "PassiveQ deaktivieren"
+    Settings: "Lobby-Einstellungen"
+  View:
+    Title: "Lobby #%lobbyId%"
+    Description: "Spiel: %game%\nSpieler: %players%/%capacity%\nPlattform: %platform%\nRegion: %region%\nKommunikationssprachen: %languages%\nErlaubte Ränge: %ranks%\nVoice-Channel: %voiceInvite%\n\n**Spieler in der Lobby**\n%playerList%"
+    AnyRank: "Alle Ränge"
+    AnyLanguage: "Beliebig"
+    JoinVoice: "Voice-Channel beitreten"
+    VoiceNotReady: "Noch nicht erstellt"
+    VoicePreparing: "Einladungslink wird erstellt …"
+  Settings:
+    Modal:
+      Title: "Lobby-Einstellungen"
+      Capacity: "Gewünschte Spieleranzahl (2–99)"
+      Minimum: "Minimaler Rang (optional)"
+      Maximum: "Maximaler Rang (optional)"
+    Fullstack:
+      Description: "Diese Spieleranzahl erreicht die No-Restriction-Größe. Sollen weiterhin die regulären Rangregeln und deine Ranggrenzen gelten?"
+    Expired: "Diese Einstellungsabfrage ist abgelaufen. Öffne die Lobby-Einstellungen erneut."
+    UnknownRank: "Der Rang **%rank%** wurde für dieses Spiel nicht gefunden. Nutze den exakten Rangnamen."
+    Result:
+      UPDATED: "Lobby aktualisiert: **%capacity% Spieler**, erlaubte Ränge **%ranks%**."
+      UNAVAILABLE: "Die Lobby-Einstellungen sind nicht mehr verfügbar oder du bist nicht der Host."
+      INVALID_CAPACITY: "Die Spieleranzahl muss zwischen 2 und 99 liegen."
+      CAPACITY_BELOW_MEMBERS: "Die Spieleranzahl darf nicht kleiner als die aktuell **%members% Mitglieder** sein."
+      INVALID_RANK_RANGE: "Der minimale Rang darf nicht über dem maximalen Rang liegen."
+      RANK_OUTSIDE_ALLOWED: "Die gewählte Grenze liegt außerhalb der regulär erlaubten Ränge **%min% – %max%**."
+      RANKS_NOT_AVAILABLE: "Für diesen Spielmodus sind keine Ranggrenzen verfügbar."
+      UNRESTRICTED_NOT_AVAILABLE: "No-Restriction ist für diese Spieleranzahl nicht verfügbar."
+  PassiveQueue:
+    Started: "Die Passive Queue wurde gestartet. Es wurden **%count% Einladungen** versandt."
+    Stopped: "Die Passive Queue wurde deaktiviert."
+    Exhausted:
+      Title: "Keine weiteren Spieler in der Passive Queue"
+      Description: "Es sind keine weiteren passenden Spieler in der Passive Queue verfügbar. Aktuell befinden sich **%players% Spieler** in der Lobby. Du kannst mit dieser Spieleranzahl starten oder die Lobby auflösen."
+    StartCurrent: "Mit aktuellen Spielern starten"
+    FindMerge: "Passende Lobby suchen"
+    Dissolve: "Lobby auflösen"
+    StartedCurrent: "Die Lobby wird mit der aktuellen Spieleranzahl gestartet."
+    Dissolved: "Die Lobby wurde aufgelöst."
+    ActionFailed: "Diese Aktion ist für die Lobby nicht mehr verfügbar."
+  Merge:
+    Title: "Kompatible Lobby gefunden"
+    Description: "Es wurden **%count%** offene Lobbys gefunden, mit denen deine Lobby zusammengeführt werden kann. Beim Zusammenführen wechseln alle Mitglieder deiner Lobby in die ausgewählte Ziel-Lobby."
+    Select: "Ziel-Lobby auswählen"
+    OptionLabel: "Lobby #%lobbyId% · %host%"
+    OptionDescription: "%players%/%capacity% Spieler · %platform% · %region%"
+    None: "Aktuell wurde keine offene PassiveQ-Lobby gefunden, die genügend Platz hat und mit allen Profil-, Sprach- und Rangregeln kompatibel ist."
+    Result:
+      MERGED: "Deine Lobby wurde erfolgreich mit Lobby **#%targetLobby%** zusammengeführt."
+      UNAVAILABLE: "Eine der Lobbys ist nicht mehr verfügbar oder die Ziel-Lobby sucht nicht mehr über PassiveQ."
+      NOT_ENOUGH_SPACE: "In der Ziel-Lobby ist nicht mehr genügend Platz für alle Spieler."
+      INCOMPATIBLE: "Die Lobbys sind aufgrund ihrer Profile, Sprachen oder Rangregeln nicht mehr kompatibel."
+  Clan:
+    UseInviteButton: "Nutze „Crew einladen“, um Crew-Mitglieder einzuladen."
+  Browse:
+    None: "Keine passende offene Lobby gefunden. Erstelle oder aktiviere zuerst ein Suchprofil."
+    Title: "Passende Lobbys · %page%/%pages%"
+    Join: "Lobby #%lobbyId% beitreten"
+    Entry: "#%lobbyId% · %players%/%capacity% · Ränge %rankMin%–%rankMax%"
+    Modal:
+      Title: "Passende Lobbys finden"
+      Game: "Spiel-ID"
+  InviteFriend:
+    Success: "Freund wurde eingeladen."
+    Failed: "Einladung fehlgeschlagen. Direkte Einladungen benötigen eine bestätigte Freundschaft."
+    Modal:
+      Title: "Freund einladen"
+      Username: "Benutzername des Freundes"
+  InviteClan:
+    Sent: "Es wurden **%count%** Crew-Einladungen verschickt. Weitere Einladungen folgen bei großen Crews schrittweise."
+    Title: "Crew auswählen"
+    Description: "Wähle eine deiner Crews aus, deren Spieleliste zu dieser Lobby passt · Seite %page%/%pages%."
+    Select: "Crew zum Einladen auswählen"
+    Option: "%role% · %members% Mitglieder"
+    None: "Du bist in keiner einladbaren Crew, die dieses Spiel in ihrer Spieleliste hat."
+    Unavailable: "Diese Lobby ist nicht mehr für Crew-Einladungen verfügbar."
+    Modal:
+      Title: "Crew einladen"
+      Clan: "Crew-ID"
+  Invitation:
+    Title: "Lobby-Einladung"
+    Description: "**%leader%** hat dich in Lobby **#%lobbyId%** eingeladen.\nBewertung des Hosts: **%leaderRating%**\nEinladungsart: **%source%**\nSpiel: **%game%**\nSpieler: **%playerCount%/%capacity%**\nPlattform: **%platform%**\nRegion: **%region%**\nKommunikationssprachen: **%languages%**\nErlaubte Ränge: **%ranks%**\n\n**Aktuelle Mitspieler**\n%players%\n\nDiese Nachricht wird bei Änderungen an der Lobby automatisch aktualisiert."
+    Accept: "Beitreten"
+    LeavePartyAndAccept: "Party verlassen & annehmen"
+    Decline: "Ablehnen"
+    RankUnknown: "Rang unbekannt"
+    Source:
+      FRIEND: "Direkte Einladung"
+      CLAN: "Crew-Einladung"
+      PASSIVE_QUEUE: "PassiveQ"
+  HostPromotion:
+    Title: "Du bist der neue Lobby-Host"
+    Description: "Der vorherige Host ist nicht rechtzeitig beigetreten. Du leitest jetzt Lobby #%lobbyId%."
+  Voice:
+    Title: "Lobby ist bereit"
+    InviteUnavailable: "Einladung nicht verfügbar; kontaktiere den Host"
+    NoPartner:
+      Title: "Keine Partner-Guild verfügbar"
+      Description: "Für diese Lobby konnte aktuell auf keiner Partner-Guild ein funktionsfähiger Voice-Channel erstellt werden. Die jeweiligen Guild-Manager wurden informiert. Bitte versuche es später erneut oder informiere das MYG-Team."
+    ReadyExternal: "Die Lobby ist voll. Tritt innerhalb von sechs Minuten der Partner-Guild bei: %invite%\nÖffne danach den Voice-Channel **%channel%**."
+    ReadyMember: "Die Lobby ist voll. Dein Voice-Channel ist bereit: %channel%"
+    Reminder:
+      Title: "Noch eine Minute zum Beitreten"
+      Description: "Du hast noch ungefähr eine Minute, um dem Voice-Channel von Lobby #%lobbyId% beizutreten."
+    Rejoin:
+      Title: "Voice-Channel verlassen"
+      Description: "Du hast zwei Minuten, um wieder dem Voice-Channel beizutreten. Danach wirst du aus der Lobby entfernt."
+      Extend: "Frist um 2 Minuten verlängern"
+      Extended: "Deine Frist wurde einmalig um zwei Minuten verlängert."
+      ExtensionUnavailable: "Die Frist kann nicht erneut verlängert werden oder ist bereits abgelaufen."
+  Kick:
+    Select: "Spieler aus der Lobby entfernen"
+    Success: "Der Spieler wurde aus der Lobby entfernt."
+    Failed: "Der Spieler konnte nicht aus der Lobby entfernt werden."
+    NoReason: "Es wurde kein Grund angegeben."
+    VoiceJoinTimeout: "Du bist dem Lobby-Voice-Channel nicht innerhalb der vorgegebenen Zeit beigetreten."
+    VoiceRejoinTimeout: "Du bist nicht innerhalb der Wiederbeitrittsfrist in den Lobby-Voice-Channel zurückgekehrt."
+    Modal:
+      Title: "Spieler aus Lobby entfernen"
+      Reason: "Grund (optional)"
+    Notification:
+      Title: "Du wurdest aus einer Lobby entfernt"
+      Description: "Du wurdest aus Lobby **#%lobbyId%** entfernt.\n\n**Grund**\n%reason%"
+  Leave:
+    Success: "Du hast die Lobby verlassen."
+    Failed: "Du konntest diese Lobby nicht verlassen."
+  LanguageMismatch:
+    Select: "Sprache hinzufügen und Lobby beitreten"
+  JoinResult:
+    JOINED: "Du bist der Lobby beigetreten."
+    LOBBY_NOT_FOUND: "Die Lobby oder Einladung wurde nicht gefunden."
+    LOBBY_CLOSED: "Diese Lobby ist nicht mehr offen."
+    PROFILE_MISMATCH: "Dein Suchprofil passt nicht zu dieser Lobby."
+    PARTY_HOST_REQUIRED: "Nur der Party-Host kann die gesamte Party mitnehmen."
+    PARTY_TOO_LARGE: "Für deine gesamte Party sind nicht genügend Plätze frei."
+    LANGUAGE_MISMATCH: "Du sprichst aktuell keine der in der Lobby verbleibenden Kommunikationssprachen."
+    ALREADY_MEMBER: "Du bist bereits Mitglied dieser Lobby."
+    DATABASE_ERROR: "Beim Lobby-Beitritt ist ein Datenbankfehler aufgetreten."
+  Wizard:
+    NoCommunicationLanguages: "Wähle mindestens eine deiner Kommunikationssprachen aus."
+    PartyOnlyHost: "Du bist Mitglied einer Party. Nur der Party-Host kann eine Lobby erstellen und dabei alle Mitglieder mitnehmen."
+    PartyTooLarge: "Deine Party hat %partySize% Mitglieder, die Lobby aber nur %capacity% Plätze. Erhöhe zuerst die Spielerzahl."
+    PartyProfilesMissing: "Folgende Party-Mitglieder müssen zuerst ein Spielprofil für diesen Modus und diese Plattform einrichten: **%players%**."
+    PartyNoCommonLanguage: "Die Party besitzt keine gemeinsame Kommunikationssprache aus der Lobby-Auswahl."
+    PartyRanksIncompatible: "Die konfigurierten Ränge der Party-Mitglieder erfüllen die regulären Rangregeln dieser Lobby nicht."
+    Languages:
+      Title: "Kommunikationssprachen der Lobby"
+      Description: "Wähle alle Sprachen aus, über die sich diese Lobby verständigen kann. Beim Beitritt wird daraus die gemeinsame Schnittmenge gebildet."
+      Select: "Kommunikationssprachen auswählen"
+    Expired: "Diese Auswahl ist abgelaufen. Starte den Assistenten erneut."
+    InvalidSelection: "Diese Auswahl gehört nicht zum aktuellen Schritt."
+    LobbyExpired: "Diese Lobby-Auswahl ist abgelaufen."
+    CreateFailed: "Die Lobby konnte nicht erstellt werden."
+    Created: "Lobby **#%lobbyId%** für **%mode%** wurde erstellt. Öffne „Lobby erstellen“ erneut, um sie zu verwalten."
+    InvalidCapacity: "Die Spielerzahl muss eine Zahl sein."
+    NoGames: "Es sind keine aktiven Spiele verfügbar."
+    NoModes: "Für dieses Spiel ist noch kein aktiver Modus angelegt."
+    NoPlatforms: "Für diesen Modus wurden noch keine Plattformen konfiguriert."
+    NoRegions: "Für diesen Modus wurden noch keine Regionen konfiguriert."
+    NoRanks: "Dieser Modus ist rangbasiert, besitzt aber noch keine Rangdefinitionen."
+    Page: "%title% · Seite %page%/%pages%"
+    Description: "Schrittweise Konfiguration · Seite %page% von %pages%"
+    CreateProfileDescription: "Für diesen Modus hast du noch kein Profil. Lege es jetzt einmalig an · Seite %page% von %pages%."
+    SelectProfileDescription: "Du hast mehrere Profile. Wähle die Plattform des Profils, das für diese Lobby verwendet werden soll · Seite %page% von %pages%."
+    Navigation:
+      Previous: "← Zurück"
+      Next: "Weitere →"
+    Select:
+      Game: "Spiel auswählen"
+      Mode: "Modus auswählen"
+      Platform: "Plattform auswählen"
+      Region: "Region auswählen"
+      Rank: "Rang auswählen"
+      Role: "Rolle auswählen"
+    Modal:
+      Title: "Lobby erstellen"
+      Capacity: "Spielerzahl"
+    Fullstack:
+      Title: "Rangregeln für vollständiges Team"
+      Description: "Diese Spielerzahl erlaubt eine Fullstack-Lobby ohne Rangbeschränkung. Soll der Rang egal sein oder sollen weiterhin die regulären Rangregeln gelten?"
+      Regular: "Reguläre Rangregeln"
+      Unrestricted: "Rang ist egal"
+    PassiveSaved:
+      Title: "PassiveQ-Profil gespeichert"
+      Failed: "Das Profil konnte nicht gespeichert werden."
+      Description: "Modus: **%mode%**\nPlattform: **%platform%**\nRegion: **%region%**\nRang: **%rank%**\nRolle: **%role%**"
+
+GameProfile:
+  Manage:
+    title: "Deine Spielprofile"
+    description: "**%count% Profile** · Seite %page%/%pages%\n\n%profiles%"
+    Entry: "**%game% · %platform%**\nRegion: %region% · Rang: %rank% · Rolle: %role%"
+    None: "Du hast noch keine Spielprofile angelegt."
+    Configure: "Profil hinzufügen / bearbeiten"
+    Languages: "Kommunikationssprachen"
+    Select: "Spielprofil auswählen und bearbeiten"
+    ProfileUnavailable: "Dieses Spielprofil oder eine seiner Auswahloptionen ist nicht mehr verfügbar."
+  Confirmation:
+    Title: "Änderungen am Spielprofil bestätigen"
+    Description: "Spiel: **%game%**\n\n**Bisher**\nPlattform: %oldPlatform%\nRegion: %oldRegion%\nRang: %oldRank%\nRolle: %oldRole%\n\n**Neu**\nPlattform: %newPlatform%\nRegion: %newRegion%\nRang: %newRank%\nRolle: %newRole%"
+    Confirm: "Änderungen speichern"
+    Cancel: "Abbrechen"
+  Saved: "Das Spielprofil für **%game%** auf **%platform%** wurde gespeichert."
+  SavedPassiveEnabled: "Das Spielprofil für **%game%** auf **%platform%** wurde gespeichert und automatisch für die PassiveQ aktiviert. Du kannst es bei Bedarf in der PassiveQ-Verwaltung deaktivieren."
+  SaveFailed: "Das Spielprofil konnte nicht gespeichert werden."
+  Languages:
+    title: "Deine Kommunikationssprachen"
+    description: "Je kleiner die Prioritätszahl, desto früher wirst du für passende PassiveQ-Einladungen berücksichtigt.\n\n%languages%"
+    Add: "Sprache hinzufügen / priorisieren"
+    Modal:
+      Title: "Kommunikationssprache speichern"
+      Language: "Sprache oder Sprachcode"
+      Priority: "Priorität"
+  AfterLobby:
+    Title: "Hat sich dein Spielprofil geändert?"
+    Description: "Prüfe bitte nach dieser Lobby, ob sich Rang, Plattform, Region oder Rolle geändert haben."
+    Changed: "Profil aktualisieren"
+    Unchanged: "Keine Änderung"
+    ConfirmedUnchanged: "Dein gespeichertes Spielprofil bleibt unverändert."
+  Updated:
+    Title: "Spielprofil aktualisiert"
+    Description: "Deine aktuellen Spielprofildaten wurden gespeichert und werden für zukünftige Lobbys und die PassiveQ verwendet."
+
+PassiveQ:
+  NoGamesSelected: "Du hast kein Spiel für die PassiveQ ausgewählt. Aktiviere zuerst mindestens ein Spielprofil in der PassiveQ-Verwaltung."
+  title: "PassiveQ-Einstellungen"
+  description: "PassiveQ global: **%enabled%**\nMit Online-Status synchronisieren: **%sync%**\nGespeicherte Spielprofile: **%profiles%**"
+  Title: "PassiveQ-Einstellungen"
+  Description: "PassiveQ global: **%enabled%**\nMit Online-Status synchronisieren: **%sync%**\nGespeicherte Spielprofile: **%profiles%**"
+  Button:
+    Configure: "Spielprofil hinzufügen / ändern"
+    Disable: "Gesamte PassiveQ deaktivieren"
+    Enable: "Gesamte PassiveQ aktivieren"
+    DisableSync: "Online-Sync deaktivieren"
+    EnableSync: "Online-Sync aktivieren"
+  Profile:
+    Select: "Spielprofil auswählen und PassiveQ umschalten"
+    Activated: "Die PassiveQ für **%game%** auf **%platform%** wurde aktiviert."
+    Deactivated: "Die PassiveQ für **%game%** auf **%platform%** wurde deaktiviert."
+  Confirmation:
+    Title: "PassiveQ-Spielprofil bestätigen"
+  Shortcut:
+    ActiveLobby: "Während du dich in einer aktiven Lobby befindest, kann die PassiveQ nicht umgeschaltet werden."
+
+Inbox:
+  Title: "Deine MYG-Inbox"
+  Description: "**%count% Nachrichten** · davon **%unread% ungelesen** · Seite %page%/%pages%\n\n%messages%"
+  Empty: "Deine Inbox ist leer."
+  Entry: "%status% **%title%** · %date%"
+  UnreadMarker: "🔵"
+  ReadMarker: "⚪"
+  Select: "Nachricht öffnen"
+  Unread: "Ungelesen"
+  Read: "Gelesen"
+  MarkRead: "Als gelesen markieren"
+  MarkedRead: "Die Nachricht wurde als gelesen markiert."
+  NotFound: "Diese Nachricht wurde nicht gefunden."
+  SentAt: "Gesendet: %date%"
+  Delete: "Aus Inbox löschen"
+  Deleted: "Die Nachricht wurde aus deiner Inbox gelöscht."
+
+Party:
+  Kick:
+    Select: "Party-Mitglied entfernen"
+    Success: "Das Mitglied wurde aus der Party entfernt."
+    Failed: "Das Mitglied konnte nicht aus der Party entfernt werden."
+  Title: "Deine Party"
+  Members: "Mitglieder: %members%"
+  CreateFailed: "Die Party konnte nicht erstellt werden."
+  Left: "Du hast die Party verlassen."
+  NotInParty: "Du bist in keiner Party."
+  Button:
+    Invite: "Freund einladen"
+    Leave: "Verlassen / auflösen"
+  Manage:
+    title: "Party verwalten"
+    description: "Mitglieder (%count%):\n%members%%notice%"
+  Invite:
+    Dropdown: "Freund zur Party einladen"
+    Success: "Die Party-Einladung wurde gesendet."
+    Failed: "Die Einladung konnte nicht gesendet werden. Nur der Host kann Freunde einladen, die noch in keiner Party sind."
+    Modal:
+      Title: "Freund zur Party einladen"
+      Username: "Benutzername des Freundes"
+  Invitation:
+    Title: "Party-Einladung"
+    Description: "**%host%** hat dich in eine Party eingeladen. Du wirst erst nach deiner Bestätigung hinzugefügt."
+    Accept: "Annehmen"
+    Decline: "Ablehnen"
+    Accepted: "Du bist der Party beigetreten."
+    AcceptedNotification:
+      Title: "Party-Einladung angenommen"
+      Description: "**%user%** hat deine Party-Einladung angenommen und ist der Party beigetreten."
+    Declined: "Du hast die Party-Einladung abgelehnt."
+    NotAvailable: "Diese Party-Einladung ist nicht mehr verfügbar."
+
+Match:
+  OnlyHost: "Nur der Host kann nach dem Schließen der Lobby Matches hinzufügen."
+  NoStatsPending: "Es stehen keine Statistikeingaben mehr aus."
+  Confirmed: "Match bestätigt."
+  Disputed: "Das Match wurde zur Moderation als strittig markiert."
+  AllEntered: "Alle Matches dieser Lobby wurden eingetragen."
+  CreateFailed: "Das Match konnte nicht erstellt werden."
+  Submitted: "Das Match wurde zur Bestätigung gesendet. Du kannst ein weiteres Match hinzufügen oder abschließen."
+  Created: "Das Match wurde für die gesamte Lobby erstellt. Fahre mit den konfigurierten Spielstatistiken fort."
+  SessionUnavailable: "Diese Matcherfassung ist nicht mehr verfügbar."
+  InvalidStat: "Ungültiger Statistikwert. Prüfe den erwarteten Datentyp."
+  StatsSaved: "Statistiken gespeichert. Fahre mit den nächsten Einträgen fort."
+  Button:
+    Add: "Match hinzufügen"
+    AddAnother: "Weiteres Match hinzufügen"
+    Done: "Keine weiteren Matches"
+    EnterStats: "Statistiken eingeben"
+    NextStats: "Nächste Statistiken"
+  StatsModal:
+    Title: "Matchstatistiken eingeben"
+  Confirmation:
+    Title: "Matchergebnis bestätigen"
+    Description: "Bitte bestätige das eingetragene Ergebnis für Match #%matchId%."
+    Confirm: "Bestätigen"
+    Dispute: "Widersprechen"
+
+Review:
+  NotAvailable: "Diese Bewertungszuweisung ist nicht mehr verfügbar."
+  Submitted: "Danke. Dein privater Text ist ausschließlich für die Moderation sichtbar."
+  SubmitFailed: "Die Bewertung konnte nicht gespeichert werden. Verwende 1–5 Sterne und prüfe die Zuweisung."
+  Modal:
+    Title: "Spieler bewerten"
+    Behavior: "Verhalten (1–5)"
+    Teamplay: "Teamplay (1–5)"
+    Reliability: "Zuverlässigkeit (1–5)"
+    Feedback: "Privates Feedback für die Moderation"
+  Assignment:
+    Title: "Zufällige Spielerbewertung"
+    Description: "Bitte bewerte **%target%** aus Lobby #%lobbyId%."
+    Button: "Spieler bewerten"
+
+Admin:
+  Panel:
+    Title: "MatchYourGame Admin Panel"
+    Description: "Deine Rolle: **%role%**\nBot online: **%uptime%**\n\nNutzer: **%users%**\nGuilds: **%guilds%** (davon %partners% Partner)\nAktive Lobbys: **%lobbies%**\nAktive Partys: **%parties%**\nGames/Modi: **%games%**"
+    Users: "Nutzer verwalten"
+    Guilds: "Guilds verwalten"
+    Invite: "Nutzer einladen"
+    Lobbies: "Aktive Lobbys"
+    Parties: "Aktive Partys"
+    Games: "Games verwalten"
+    Broadcast: "Broadcast senden"
+    NoPermission: "Deine Rolle erlaubt diese Aktion nicht."
+  Delivery:
+    SILENT: "Silent – nur in der MYG-Inbox"
+    DIRECT_DM: "Direkt – Inbox und Discord-DM"
+  Broadcast:
+    Sent: "Der Broadcast wurde für **%count% Nutzer** gespeichert. Versandart: **%delivery%**."
+    Failed: "Der Broadcast konnte nicht gespeichert werden."
+    Modal:
+      Title: "Broadcast an alle Nutzer"
+      EmbedTitle: "Titel der Nachricht"
+      Message: "Nachricht"
+      Delivery: "Versandart"
+  ActiveLobbies:
+    Title: "Aktive Lobbys"
+    Description: "**%count% Lobbys** · Seite %page%/%pages%\n\n%entries%"
+    None: "Aktuell ist keine Lobby aktiv."
+    Entry: "**#%id%** · %game% · %players%/%capacity% · %status% · Host: %host%"
+  ActiveParties:
+    Title: "Aktive Partys"
+    Description: "**%count% Partys** · Seite %page%/%pages%\n\n%entries%"
+    None: "Aktuell ist keine Party aktiv."
+    Entry: "**#%id%** · Host: %host% · %count% User\n%members%"
+  Games:
+    Title: "Games und Modi verwalten"
+    Description: "**%count% Einträge** · Seite %page%/%pages%\n\n%games%"
+    None: "Es wurden keine Games angelegt."
+    Entry: "**#%id% · %name%** · Aktiv: %active% · Skillbased: %skillbased% · Hauptspiel: %parent%\nPassiveQ-Spieler: **%passiveUsers%** · Offene Lobbys: **%openLobbies%**"
+    Select: "Game oder Modus auswählen"
+    Create: "Game / Modus erstellen"
+    Edit: "Bearbeiten"
+    Options: "Auswahlwerte"
+    OptionsTitle: "Plattformen, Regionen, Ränge und Rollen"
+    Platforms: "Plattformen (kommagetrennt)"
+    Regions: "Regionen (kommagetrennt)"
+    Ranks: "Ränge aufsteigend (kommagetrennt)"
+    Roles: "Rollen (kommagetrennt)"
+    Detail: "ID: **%id%**\nHauptspiel: **%parent%**\nSkillbased: **%skillbased%**\nAktiv: **%active%**\n\nPassiveQ-Spieler: **%passiveUsers%**\nOffene Lobbys: **%openLobbies%**"
+    NotFound: "Dieses Game wurde nicht gefunden."
+    CreateTitle: "Game oder Modus erstellen"
+    EditTitle: "Game bearbeiten"
+    Name: "Name"
+    Parent: "Hauptspiel-ID (0 = Hauptspiel)"
+    Skillbased: "Skillbased (true/false)"
+    Active: "Aktiv (true/false)"
+    InvalidBoolean: "Nutze für Skillbased und Aktiv true oder false."
+    Saved: "Das Game wurde gespeichert."
+    SaveFailed: "Das Game konnte nicht gespeichert werden."
+  Command:
+    Unauthorized: "Dieser Command ist nur für Administratoren auf der freigegebenen Guild verfügbar."
+    InternalError: "Der Command konnte wegen eines internen Fehlers nicht ausgeführt werden."
+  Game:
+    CreateFailed: "Das Game konnte nicht erstellt werden. Prüfe insbesondere die Hauptspiel-ID."
+    Created: "Game **%game%** wurde mit ID **%gameId%** und **%statistics%** Statistikdefinition(en) erstellt."
+    Configured: "Die Auswahlwerte für **%game%** wurden aktualisiert."
+  Review:
+    NonePending: "Aktuell warten keine Bewertungstexte auf Moderation."
+    PendingTitle: "**Offene Bewertungen – Seite %page%/%pages%**"
+    Moderated: "Bewertung **%assignmentId%** wurde mit **%stars%** Sternen moderiert."
+    NotFound: "Bewertung nicht gefunden oder noch nicht abgegeben."
+  Users:
+    Title: "MYG-Nutzerverwaltung"
+    Description: "**%count% Accounts** · Seite %page%/%pages%\n\n%users%"
+    Entry: "• **%username%** · %discord% · %rating%"
+    None: "Es wurden keine Accounts gefunden."
+    Select: "Nutzerprofil öffnen"
+    NotFound: "Dieser Nutzer wurde nicht gefunden."
+    Detail:
+      title: "%username%"
+      description: "MYG-ID: **%userId%**\nDiscord: **%discord%** (`%discordId%`)\nRolle: **%role%**\nSprache: **%language%**\nErstellt: %createdAt%\nBewertung: **%rating%**\nGebannt: **%banned%**\n\nPassiveQ global: **%passive%**\nOnline-Sync: **%sync%**\nAktive PassiveQ-Spiele: %passiveGames%\nParty: %party%\nLobby: %lobby%\n\n**Verwarnungen**\n%warnings%\n\n**Freunde**\n%friends%"
+    Reviews:
+      Button: "Einzelbewertungen"
+      Title: "Bewertungen von %username%"
+      Description: "**%count% Bewertungen** · Seite %page%/%pages%\n\n%reviews%"
+      None: "Für diesen Nutzer wurden noch keine Bewertungen abgegeben."
+      Entry: "**#%id% · %reviewer% · Lobby #%lobby%**\nVerhalten %behavior%/5 · Teamplay %teamplay%/5 · Zuverlässigkeit %reliability%/5 · Moderation %moderation%/5\nFeedback: %feedback%"
+    Role:
+      Select: "Systemrolle ändern"
+      Success: "Die Systemrolle wurde aktualisiert."
+      Failed: "Du darfst diese Systemrolle nicht vergeben."
+    Unban:
+      Button: "Vorzeitig entbannen"
+      Success: "Der Nutzer wurde vorzeitig entbannt."
+      Failed: "Der Nutzer konnte nicht entbannt werden."
+    Warning:
+      Button: "Verwarnen"
+      Success: "Die Verwarnung wurde gespeichert und dem Nutzer mitgeteilt."
+      Failed: "Die Verwarnung konnte nicht gespeichert werden."
+      Modal:
+        Title: "Nutzer verwarnen"
+        Reason: "Grund der Verwarnung"
+      Notification:
+        Title: "Du hast eine MYG-Verwarnung erhalten"
+        Description: "**Grund**\n%reason%"
+    Dm:
+      Button: "Nachricht senden"
+      Sent: "Die Nachricht wurde gespeichert. Versandart: **%delivery%**."
+      Failed: "Die Nachricht konnte nicht gespeichert werden."
+      Modal:
+        Title: "Nachricht an Nutzer senden"
+        EmbedTitle: "Titel des Embeds"
+        Message: "Nachricht"
+        Delivery: "Versandart"
+    Ban:
+      Button: "Nutzer bannen"
+      Success: "Der Nutzer wurde gebannt und aus aktiven Funktionen entfernt."
+      Failed: "Der Nutzer konnte nicht gebannt werden."
+      InvalidDuration: "Ungültige Dauer. Nutze z. B. 30m, 12h, 7d, 4w oder forever."
+      Modal:
+        Title: "Nutzer bannen"
+        Duration: "Dauer (z. B. 7d oder forever)"
+        Reason: "Grund"
+  Guilds:
+    Title: "MYG-Guild-Verwaltung"
+    Description: "**%count% Guilds** · Seite %page%/%pages%\n\n%guilds%"
+    Entry: "• **%name%** · %accounts% Accounts · Partner: %partner%"
+    None: "Es wurden keine eingerichteten Guilds gefunden."
+    Select: "Guild öffnen"
+    NotFound: "Diese Guild wurde nicht gefunden."
+    Detail:
+      title: "%name%"
+      description: "Guild-ID: `%guildId%`\nDiscord-Host: **%host%**\nMYG-Manager: **%manager%**\nSprache: **%language%**\nEingerichtet: %addedAt%\n\nErstellte Accounts: **%accounts%**\nDurchschnittliche Bewertung: **%rating%**\nPartner-Guild: **%partner%**\nPartnerprogramm-Status: **%partnerStatus%**\nVoice-Kategorie: %voiceCategory%"
+    Partner:
+      Button: "Zur Partner-Guild machen"
+      InviteButton: "Zum Partnerprogramm einladen"
+      Invited: "Der MYG-Manager wurde unabhängig vom Schwellwert zum Partnerprogramm eingeladen."
+      InviteFailed: "Die Guild konnte nicht eingeladen werden. Möglicherweise besteht bereits eine offene Bewerbung oder Einladung."
+      Success: "Die Guild wurde als Partner-Guild aktiviert."
+      Failed: "Der Partnerstatus konnte nicht gespeichert werden."
+      Already: "Diese Guild ist bereits eine Partner-Guild."
+      Unavailable: "Die Guild ist nicht mehr erreichbar oder nicht eingerichtet."
+      CreateCategoryFailed: "Die MYG-Voice-Kategorie konnte nicht erstellt werden. Prüfe die Bot-Berechtigungen."
+
+Clear:
+  NoAccount: "Für diesen Discord-Account wurde kein MatchYourGame-Konto gefunden."
+  PrivateOnly: "Nutze `/clear` bitte im privaten Chat mit dem Bot."
+  Failed: "Der Bot-Chat konnte nicht vollständig geleert werden. Versuche es bitte erneut."
+
+AccountDeletion:
+  Modal:
+    Title: "Account dauerhaft anonymisieren"
+    Confirmation: "Zum Bestätigen LÖSCHEN eingeben"
+  InvalidConfirmation: "Die Bestätigung stimmt nicht. Es wurde nichts verändert."
+  Success: "Dein Account wurde anonymisiert. Freunde, Crews und persönliche Einstellungen wurden entfernt; Matchstatistiken bleiben anonym erhalten."
+  Failed: "Der Account konnte nicht anonymisiert werden."
+
+Report:
+  Menu:
+    title: "Report und Feedback"
+    description: "Möchtest du einen Spieler melden, einen Bug einreichen oder allgemeines Feedback senden?"
+    Player: "Spieler melden"
+    Bug: "Bug melden"
+    Feedback: "Feedback senden"
+  Player:
+    Title: "Spieler melden"
+    Username: "Benutzername des Spielers"
+    Reason: "Grund und Beschreibung"
+    NotFound: "Dieser Spieler wurde nicht gefunden."
+    NoContact: "Du kannst diesen Spieler nicht melden, da zwischen euch kein vorheriger Kontakt nachgewiesen werden konnte."
+  Bug:
+    Title: "Bug melden"
+    Subject: "Kurzer Titel"
+    Details: "Beschreibung und Schritte zum Nachstellen"
+  Feedback:
+    Title: "Feedback senden"
+    Details: "Dein Feedback"
+    ChannelSubject: "Allgemeines Feedback"
+  Channel:
+    Title: "Neuer %type%-Report"
+    Ban: "Von MYG bannen"
+    Contact: "Nutzer kontaktieren"
+    Resolve: "Als erledigt markieren"
+    Reject: "Ablehnen"
+    Delete: "Feedback löschen"
+  Contact:
+    OpenedTitle: "Das MYG-Team möchte deinen Bug-Report besprechen"
+    OpenedDescription: "Nutze **Antworten**, um dem Team eine Nachricht zu senden. Die gesamte Unterhaltung wird in diesem Embed angezeigt."
+    TeamTitle: "Nachricht des MYG-Teams"
+    TeamLabel: "MYG-Team"
+    UserLabel: "Du"
+    Reply: "Antworten"
+    End: "Konversation beenden"
+    ReplyTitle: "Dem MYG-Team antworten"
+    ReplyMessage: "Deine Nachricht"
+    ReplySent: "Deine Antwort wurde an das MYG-Team gesendet."
+    Unavailable: "Diese Konversation ist nicht mehr verfügbar."
+    EndedForTeam: "Der Nutzer hat die DM-Konversation beendet."
+  Finished:
+    ResolvedTitle: "Dein Report wurde erledigt"
+    RejectedTitle: "Dein Report wurde abgelehnt"
+  Ban:
+    Title: "Du wurdest von MatchYourGame ausgeschlossen"
+    Description: "Dauer: **%until%**\nGrund: %reason%"
+    Forever: "Dauerhaft"
+  Moderation:
+    NotAvailable: "Dieser Report ist nicht mehr verfügbar."
+    BanTitle: "Von MYG bannen"
+    Duration: "Dauer (30m, 12h, 7d, 4w oder forever)"
+    Reason: "Grund"
+    ResolveTitle: "Report erledigen"
+    RejectTitle: "Report ablehnen"
+    UserMessage: "Nachricht an den Nutzer"
+    InvalidDuration: "Ungültige Dauer. Nutze 30m, 12h, 7d, 4w oder forever."
+    BanSuccess: "Der Nutzer wurde von MYG gebannt."
+    BanFailed: "Der Ban konnte nicht gespeichert werden."
+    Updated: "Der Report wurde aktualisiert."
+    ContactBugOnly: "Kontaktkanäle sind nur für Bug-Reports verfügbar."
+    ContactExists: "Es existiert bereits ein Kontaktkanal:"
+    CategoryMissing: "Der Report-Channel muss sich in einer Kategorie befinden."
+    ContactIntro: "Support-Unterhaltung für Report **#%reportId%**. Teamnachrichten in diesem Channel werden dem Nutzer per DM weitergeleitet."
+    ContactCreated: "Kontaktkanal erstellt:"
+    ContactFailed: "Der Kontaktkanal konnte nicht erstellt werden."
+  Sent: "Dein Report wurde erfolgreich übermittelt. Vielen Dank."
+  Unavailable: "Der Report konnte aktuell nicht übermittelt werden. Bitte informiere das Team."
+
+ProjectInvite:
+  Modal:
+    Title: "Discord-Nutzer einladen"
+    Username: "Discord-Benutzername"
+    Language: "Sprache der Einladung"
+  Message:
+    Title: "Einladung zu MatchYourGame"
+    Description: "Du wurdest persönlich eingeladen, MatchYourGame beizutreten. Möchtest du jetzt deinen kostenlosen MYG-Account erstellen?"
+    Accept: "Ja, Account erstellen"
+    Decline: "Nein"
+  Decline:
+    Modal:
+      Title: "Einladung ablehnen"
+      Reason: "Warum möchtest du nicht teilnehmen?"
+    Confirmed: "Danke für deine Rückmeldung. Sie wurde an die Projektleitung weitergeleitet."
+    Notification:
+      Title: "MatchYourGame-Einladung abgelehnt"
+      Description: "**%username%** (`%discordId%`) hat die Einladung abgelehnt.\n\n**Begründung**\n%reason%"
+
+PartnerProgram:
+  Invalid: "Diese Partnerprogramm-Aktion ist nicht erlaubt oder nicht mehr aktuell."
+  Eligible:
+    Title: "Deine Guild kann MYG-Partner werden"
+    Description: "**%guild%** hat den Schwellwert von **%count% erstellten MYG-Accounts** erreicht. Du kannst die Guild jetzt für das Partner-Guild-Programm bewerben."
+    Apply: "Als Partner-Guild bewerben"
+  ManualInvite:
+    Title: "Einladung zum MYG-Partnerprogramm"
+    Description: "Ein MYG-Admin hat **%guild%** unabhängig vom regulären Nutzer-Schwellwert zum Partner-Guild-Programm eingeladen. Du kannst jetzt eine Bewerbung einreichen."
+  Application:
+    Title: "Partner-Guild-Bewerbung"
+    Note: "Optionale Nachricht an das MYG-Team"
+    Sent: "Die Bewerbung wurde versendet. Alle MYG-Admins wurden informiert."
+  Admin:
+    Title: "Neue Partner-Guild-Bewerbung"
+    Description: "Guild: **%guild%** (`%guildId%`)\nMYG-Manager: **%manager%**\n\n**Nachricht**\n%note%"
+    Approve: "Bewerbung freigeben"
+    Reject: "Bewerbung ablehnen"
+    Approved: "Die Bewerbung wurde freigegeben. Der Guild-Manager muss die Aktivierung nun bestätigen."
+    Rejected: "Die Bewerbung wurde abgelehnt."
+  Confirmation:
+    Title: "Partner-Guild-Freigabe erhalten"
+    Description: "Die Bewerbung von **%guild%** wurde durch einen MYG-Admin freigegeben. Bestätige die Teilnahme, damit der Bot die Berechtigungen prüft und die Voice-Kategorie einrichtet."
+    Confirm: "Teilnahme bestätigen"
+    MissingPermissions: "Die Aktivierung ist noch nicht möglich. Dem Bot fehlen: **%permissions%**. Vergib die Rechte und bestätige anschließend erneut."
+    Success: "Die Guild wurde erfolgreich als Partner-Guild aktiviert."
+    Failed: "Die Partner-Guild konnte wegen eines Discord- oder Datenbankfehlers nicht aktiviert werden. Du wurdest mit Details informiert."
+  Rejected:
+    Title: "Partner-Guild-Bewerbung abgelehnt"
+    Description: "Die Bewerbung von **%guild%** wurde abgelehnt. Eine spätere erneute Einladung durch einen MYG-Admin ist möglich."
+  Problem:
+    Title: "Problem mit deiner MYG-Partner-Guild"
+    Description: "Auf **%guild%** ist ein Problem bei der Bereitstellung einer Lobby aufgetreten. Der Bot sucht automatisch eine andere Partner-Guild.\n\n**Problem**\n%problem%"
+  ActivationProblem:
+    Title: "Partner-Guild-Aktivierung nicht möglich"
+    Description: "**%guild%** konnte noch nicht als Partner-Guild aktiviert werden. Behebe das folgende Problem und bestätige die Teilnahme anschließend erneut.\n\n**Problem**\n%problem%"
+  PermissionProblem: "Folgende benötigte Bot-Rechte fehlen: %permissions%"
+  Permissions:
+    VIEW_CHANNEL: "Kanäle ansehen"
+    MANAGE_CHANNEL: "Kanäle verwalten"
+    MANAGE_PERMISSIONS: "Berechtigungen verwalten"
+    CREATE_INSTANT_INVITE: "Einladungen erstellen"
+    KICK_MEMBERS: "Mitglieder kicken"
+    VIEW_AUDIT_LOGS: "Audit-Log anzeigen"
+  Problems:
+    MissingPermissions: "Benötigte Rechte fehlen: **%permissions%**"
+    VoiceCreate: "Der Voice-Channel konnte nicht erstellt werden: %error%"
+    Permissions: "Die Channel-Rechte konnten nicht für alle Lobby-Mitglieder gesetzt oder bestätigt werden. Betroffene Discord-IDs: %users%"
+    InviteCreate: "Der Channel-Invite einschließlich Umgehung der Beitrittsbewerbung konnte nicht erstellt werden: %error%"
+    ChannelMissing: "Der erstellte Voice-Channel war bei der abschließenden Prüfung nicht mehr vorhanden."
+    GuildUnavailable: "Der Bot ist nicht mehr auf der Guild oder kann sie nicht mehr erreichen."
+    CategoryMissing: "Die konfigurierte MYG-Voice-Kategorie wurde gelöscht oder ist nicht mehr erreichbar."
+
+Tutorial:
+  Title: "Willkommen bei MatchYourGame"
+  Description: "**1. Profil einrichten**\nÖffne deine angepinnte Management-Nachricht. Lege unter **Spielprofile** für jedes Spiel Plattform, Region und – falls benötigt – Rang und Rolle fest. Unter **Profil bearbeiten** verwaltest du Namen, Nachrichten- und Kommunikationssprachen.\n\n**2. Freunde, Crews und Partys**\nFüge Freunde hinzu und bilde vor einer Lobby eine Party. Nur der Party-Host erstellt oder betritt eine Lobby und nimmt alle Mitglieder mit. In Crews kannst du Mitglieder und gemeinsame Spiele verwalten.\n\n**3. Eine Lobby finden**\nErstelle selbst eine Lobby oder aktiviere die **PassiveQ** für konfigurierte Spielprofile. PassiveQ-Einladungen werden passend zu Spiel, Plattform, Region, Rang, Sprachen und bisherigen Bewertungen verteilt. Direkte Einladungen sind nur zwischen Freunden möglich.\n\n**4. Lobby und Voice-Channel**\nIst die Lobby voll, erstellt MatchYourGame auf einer passenden Partner-Guild einen privaten Voice-Channel. Tritt innerhalb der angezeigten Frist bei. Nach dem Start werden Verlassen und Wiederbeitrittsfristen automatisch verwaltet.\n\n**5. Nach dem Spielen**\nDer Host trägt jedes gespielte Match ein. Die anderen Spieler bestätigen die Ergebnisse. Anschließend erhältst du gegebenenfalls eine zufällige Spielerbewertung; manuelle Bewertungen sind nicht möglich.\n\n**6. Hilfe und Sicherheit**\nÜber **Report / Feedback** meldest du Spieler, Bugs oder sendest Feedback. Verwende jederzeit `/tutorial`, um diese Anleitung erneut als DM zu erhalten."
+  Sent: "Das Tutorial wurde dir per DM geschickt."
+  NoAccount: "Du benötigst zuerst einen MatchYourGame-Account."

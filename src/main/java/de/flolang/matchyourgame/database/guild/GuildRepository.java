@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class GuildRepository {
 
@@ -15,8 +17,8 @@ public class GuildRepository {
         try(Connection conn = Database.getConnection()) {
             conn.prepareStatement("CREATE TABLE IF NOT EXISTS guild (guild_id VARCHAR(32) NOT NULL," +
                     "manager_user BIGINT NOT NULL ," +
-                    "myg_voice_category_id LONG," +
-                    "myg_textchannel_id LONG NOT NULL," +
+                    "myg_voice_category_id VARCHAR(32)," +
+                    "myg_textchannel_id VARCHAR(32) NOT NULL," +
                     "partnerGuild BOOLEAN NOT NULL DEFAULT FALSE," +
                     "language VARCHAR(5) NOT NULL," +
                     "added_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP," +
@@ -51,6 +53,118 @@ public class GuildRepository {
             return null;
         }
     }
+
+    public static List<GuildObject> getAll() {
+        List<GuildObject> guilds = new ArrayList<>();
+        try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(
+                "SELECT * FROM guild ORDER BY added_at,guild_id"); ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) guilds.add(map(rs));
+        } catch (SQLException e) { LOGGER.error("Error while listing guilds", e); }
+        return guilds;
+    }
+
+    public static List<GuildObject> getManagedBy(int managerUserId) {
+        List<GuildObject> guilds = new ArrayList<>();
+        try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(
+                "SELECT * FROM guild WHERE manager_user=? ORDER BY added_at,guild_id")) {
+            ps.setInt(1, managerUserId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) guilds.add(map(rs));
+            }
+        } catch (SQLException e) { LOGGER.error("Error while listing guilds managed by {}", managerUserId, e); }
+        return guilds;
+    }
+
+    public static boolean transferManager(long guildId, int currentManagerId, int newManagerId) {
+        try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(
+                "UPDATE guild SET manager_user=?,last_change_at=CURRENT_TIMESTAMP WHERE guild_id=? AND manager_user=?")) {
+            ps.setInt(1, newManagerId);
+            ps.setString(2, String.valueOf(guildId));
+            ps.setInt(3, currentManagerId);
+            boolean updated = ps.executeUpdate() == 1;
+            if (updated) {
+                GuildObject refreshed = get(guildId);
+                if (refreshed != null) GuildCache.put(refreshed);
+            }
+            return updated;
+        } catch (SQLException e) {
+            LOGGER.error("Could not transfer manager for guild {} from {} to {}", guildId,
+                    currentManagerId, newManagerId, e);
+            return false;
+        }
+    }
+
+    public static LobbyUsage lobbyUsage(long guildId) {
+        String sql = "SELECT COUNT(*) hosted_lobbies,SUM(CASE WHEN status IN ('FORMING','READY','ACTIVE') THEN 1 ELSE 0 END) active_lobbies " +
+                "FROM lobby WHERE guild_id=? AND voice_created_at IS NOT NULL";
+        try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, String.valueOf(guildId));
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return new LobbyUsage(rs.getLong("hosted_lobbies"), rs.getLong("active_lobbies"));
+            }
+        } catch (SQLException e) { LOGGER.error("Could not load lobby usage for guild {}", guildId, e); }
+        return new LobbyUsage(0, 0);
+    }
+
+    public static GuildStats stats(long guildId, int managerUserId) {
+        String filter = "(u.create_guild=? OR (u.id=? AND (u.create_guild IS NULL OR u.create_guild='0')))";
+        String sql = "SELECT COUNT(*) account_count,AVG(r.rating) average_rating FROM user u LEFT JOIN (" +
+                "SELECT ra.target_user_id,AVG((pr.behavior_stars+pr.teamplay_stars+pr.reliability_stars+" +
+                "COALESCE(pr.moderation_stars,(pr.behavior_stars+pr.teamplay_stars+pr.reliability_stars)/3.0))/4.0) rating " +
+                "FROM review_assignment ra JOIN player_review pr ON pr.assignment_id=ra.id " +
+                "WHERE ra.completed_at IS NOT NULL GROUP BY ra.target_user_id) r ON r.target_user_id=u.id WHERE " + filter;
+        try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, String.valueOf(guildId)); ps.setInt(2, managerUserId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int accountCount = rs.getInt("account_count");
+                    double rating = rs.getDouble("average_rating");
+                    boolean ratingMissing = rs.wasNull();
+                    return new GuildStats(accountCount, ratingMissing ? null : rating);
+                }
+            }
+        } catch (SQLException e) { LOGGER.error("Could not load statistics for guild {}", guildId, e); }
+        return new GuildStats(0, null);
+    }
+
+    public static boolean setPartnerGuild(long guildId, boolean partner, long voiceCategoryId) {
+        try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(
+                "UPDATE guild SET partnerGuild=?,myg_voice_category_id=?,last_change_at=CURRENT_TIMESTAMP WHERE guild_id=?")) {
+            ps.setBoolean(1, partner); ps.setString(2, String.valueOf(voiceCategoryId));
+            ps.setString(3, String.valueOf(guildId)); return ps.executeUpdate() == 1;
+        } catch (SQLException e) { LOGGER.error("Could not update partner status for guild {}", guildId, e); return false; }
+    }
+
+    public static boolean withdrawPartnerGuild(long guildId, int managerUserId) {
+        try (Connection conn = Database.getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement guild = conn.prepareStatement(
+                    "UPDATE guild SET partnerGuild=FALSE,last_change_at=CURRENT_TIMESTAMP " +
+                            "WHERE guild_id=? AND manager_user=? AND partnerGuild=TRUE");
+                 PreparedStatement application = conn.prepareStatement(
+                         "UPDATE partner_guild_application SET status='WITHDRAWN',approved_by_user_id=NULL," +
+                                 "approved_at=NULL,confirmed_at=NULL WHERE guild_id=? AND status='ACTIVE'")) {
+                guild.setString(1, String.valueOf(guildId));
+                guild.setInt(2, managerUserId);
+                if (guild.executeUpdate() != 1) { conn.rollback(); return false; }
+                application.setString(1, String.valueOf(guildId));
+                if (application.executeUpdate() != 1) { conn.rollback(); return false; }
+                conn.commit();
+                GuildObject refreshed = get(guildId);
+                if (refreshed != null) GuildCache.put(refreshed);
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            }
+        } catch (SQLException e) {
+            LOGGER.error("Could not withdraw partner guild {}", guildId, e);
+            return false;
+        }
+    }
+
+    public record GuildStats(int accountCount, Double averageRating) {}
+    public record LobbyUsage(long hostedLobbies, long activeLobbies) {}
 
     public static GuildObject getByTextChannel(long textChannelID) {
         try(Connection conn = Database.getConnection()) {
@@ -88,6 +202,22 @@ public class GuildRepository {
         }
     }
 
+    public static List<GuildObject> getPartnerGuilds() {
+        List<GuildObject> guilds = new ArrayList<>();
+        try (Connection conn = Database.getConnection();
+             PreparedStatement ps = conn.prepareStatement("SELECT * FROM guild WHERE partnerGuild=TRUE AND myg_voice_category_id IS NOT NULL")) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) guilds.add(new GuildObject(rs.getLong("guild_id"), rs.getInt("manager_user"),
+                        rs.getLong("myg_voice_category_id"), rs.getLong("myg_textchannel_id"),
+                        rs.getBoolean("partnerGuild"), Language.valueOf(rs.getString("language")),
+                        rs.getTimestamp("added_at"), rs.getTimestamp("last_change_at")));
+            }
+        } catch (SQLException e) {
+            LOGGER.error("Error while getting partner guilds", e);
+        }
+        return guilds;
+    }
+
 
     public static GuildObject createGuild(long guildID, int managerUser, long mygVoiceCategoryId, long mygTextChannelId, Language language) {
         try(Connection conn = Database.getConnection()) {
@@ -118,9 +248,17 @@ public class GuildRepository {
             preparedStatement.setBoolean(4, guildObject.isPartnerGuild());
             preparedStatement.setString(5, guildObject.getLanguage().name());
             preparedStatement.setLong(6, guildObject.getGuildID());
+            preparedStatement.executeUpdate();
             LOGGER.debug("Guild {} updated", guildObject.getGuildID());
         } catch (SQLException e) {
             LOGGER.error("Error while updating guild", e);
         }
+    }
+
+    private static GuildObject map(ResultSet rs) throws SQLException {
+        return new GuildObject(rs.getLong("guild_id"), rs.getInt("manager_user"),
+                rs.getLong("myg_voice_category_id"), rs.getLong("myg_textchannel_id"),
+                rs.getBoolean("partnerGuild"), Language.valueOf(rs.getString("language")),
+                rs.getTimestamp("added_at"), rs.getTimestamp("last_change_at"));
     }
 }

@@ -30,4 +30,15 @@ public class UserCache {
         BY_USERNAME.put(user.getUsername().toLowerCase(), user);
         BY_DISCORD_ID.put(user.getDiscordID(), user);
     }
+
+    public static void evict(UserObject user) {
+        if (user == null) return;
+        BY_ID.remove(user.getId());
+        BY_USERNAME.remove(user.getUsername().toLowerCase());
+        BY_DISCORD_ID.remove(user.getDiscordID());
+    }
+
+    public static void evictById(int userId) {
+        evict(BY_ID.get(userId));
+    }
 }

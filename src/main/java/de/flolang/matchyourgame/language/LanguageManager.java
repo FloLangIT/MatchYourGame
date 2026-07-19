@@ -15,6 +15,13 @@ public class LanguageManager {
         return getMessageByLanguage(messageKey, language);
     }
 
+    public static String getMessageForUser(String messageKey, int id, Map<String, String> replacements) {
+        String message = getMessageForUser(messageKey, id);
+        for (Map.Entry<String, String> replacement : replacements.entrySet())
+            message = message.replace(replacement.getKey(), replacement.getValue());
+        return message;
+    }
+
     public static String getMessageByLanguage(String messageKey, Language language) {
         File langFile = new File("language/" + language.name() + ".yml");
         if (!langFile.exists()) return messageKey + " Language not found: " + language.name();
