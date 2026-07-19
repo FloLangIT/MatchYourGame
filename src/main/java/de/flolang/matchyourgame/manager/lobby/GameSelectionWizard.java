@@ -216,11 +216,10 @@ public final class GameSelectionWizard extends ListenerAdapter {
                     session.role == null ? "ANY" : session.role.name());
             if (profile == null) throw new IllegalStateException("Game profile could not be saved");
             SearchProfile lobbySearchProfile = SearchProfileRepository.get(user.getId(), session.modeId,
-                    session.platform.name());
+                    profile.platform());
             if (lobbySearchProfile == null && SearchProfileRepository.upsert(user.getId(), session.modeId,
-                    session.platform.name(), session.region.name(), user.getLanguage().name(),
-                    session.rank == null ? 0 : session.rank.sortOrder(),
-                    session.role == null ? "ANY" : session.role.name(), true) == null)
+                    profile.platform(), profile.region(), user.getLanguage().name(),
+                    profile.rankValue(), profile.preferredRole(), true) == null)
                 throw new IllegalStateException("PassiveQ profile could not be enabled");
             session.selectedProfile = profile;
             session.capacity = capacity;
@@ -281,6 +280,12 @@ public final class GameSelectionWizard extends ListenerAdapter {
             event.getMessage().editMessageEmbeds(new EmbedCreator().setTitle(t(user.getId(), "Lobby.Wizard.Modal.Title"))
                             .setDescription(t(user.getId(), "Lobby.Wizard.InvalidCapacity")).build())
                     .setComponents(ActionRow.of(Button.primary("mainPage", t(user.getId(), "UserProfile.Button.Back")))).queue();
+        } catch (RuntimeException exception) {
+            sessions.remove(token);
+            DiscordLogService.error("GameSelectionWizard", "Lobby-Erstellung für User #" + user.getId()
+                    + " und Game #" + session.modeId + " fehlgeschlagen", exception.toString());
+            if (!event.isAcknowledged()) event.deferEdit().queue();
+            renderCreationError(event, user, "Lobby.Wizard.CreateFailed", Map.of());
         }
     }
 
