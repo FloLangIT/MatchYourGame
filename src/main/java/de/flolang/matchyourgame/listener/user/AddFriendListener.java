@@ -4,6 +4,8 @@ import de.flolang.matchyourgame.database.friend.FriendObject;
 import de.flolang.matchyourgame.database.friend.FriendRepository;
 import de.flolang.matchyourgame.database.user.UserController;
 import de.flolang.matchyourgame.database.user.UserObject;
+import de.flolang.matchyourgame.database.user.FriendRequestPolicy;
+import de.flolang.matchyourgame.database.user.UserRepository;
 import de.flolang.matchyourgame.language.LanguageManager;
 import de.flolang.matchyourgame.manager.FriendRequestManager;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
@@ -56,6 +58,15 @@ public class AddFriendListener extends ListenerAdapter {
                 replacings.put("%username%", username);
                 event.replyEmbeds(LanguageManager.getEmbedForUser("UserProfile.Friends.AddFriend.AlreadyFriends", selfUser.getId(), replacings).build()).setEphemeral(true).queue();
             }
+            return;
+        }
+        if (UserRepository.getFriendRequestPolicy(userObject.getId()) == FriendRequestPolicy.FRIENDS_OF_FRIENDS
+                && !FriendRepository.haveMutualFriend(selfUser.getId(), userObject.getId())) {
+            HashMap<String, String> replacings = new HashMap<>();
+            replacings.put("%username%", username);
+            event.replyEmbeds(LanguageManager.getEmbedForUser(
+                    "UserProfile.Friends.AddFriend.FriendsOfFriendsOnly", selfUser.getId(), replacings).build())
+                    .setEphemeral(true).queue();
             return;
         }
         FriendRequestManager.sendFriendRequest(selfUser.getId(), userObject.getId());

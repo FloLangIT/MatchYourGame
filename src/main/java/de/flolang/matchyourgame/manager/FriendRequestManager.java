@@ -54,9 +54,10 @@ public class FriendRequestManager {
                         replacing.put("%requester%", UserController.get(requesterID).getUsername());
                         privateChannel.sendMessageEmbeds(LanguageManager.getEmbedForUser("FriendRequest.RequestReceive", receiverID, replacing).build()).setComponents(
                                 ActionRow.of(
-                                        Button.success("friendAccept-" + requesterID, LanguageManager.getMessageForUser("FriendRequest.RequestReceive.Button.Accept", requesterID)),
-                                        Button.success("friendDeny-" + requesterID, LanguageManager.getMessageForUser("FriendRequest.RequestReceive.Button.Deny", requesterID)),
-                                        Button.success("delete", LanguageManager.getMessageForUser("FriendRequest.RequestReceive.Button.Ignore", requesterID))
+                                        Button.success("friendAccept-" + requesterID, LanguageManager.getMessageForUser("FriendRequest.RequestReceive.Button.Accept", receiverID)),
+                                        Button.success("friendDeny-" + requesterID, LanguageManager.getMessageForUser("FriendRequest.RequestReceive.Button.Deny", receiverID)),
+                                        Button.secondary("friendIgnore-" + requesterID,
+                                                LanguageManager.getMessageForUser("FriendRequest.RequestReceive.Button.Ignore", receiverID))
                                 )
                         ).queue();
                     });

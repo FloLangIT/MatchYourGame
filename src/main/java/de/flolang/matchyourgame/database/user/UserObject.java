@@ -16,5 +16,11 @@ public class UserObject {
     private Timestamp createdAt;
     private Timestamp lastChangeAt;
     private long createGuild;
+    private UserRole role;
+    private boolean anonymized;
+
+    public String getUsername() {
+        return anonymized ? "Anonymisierter Benutzer" : username;
+    }
 
 }

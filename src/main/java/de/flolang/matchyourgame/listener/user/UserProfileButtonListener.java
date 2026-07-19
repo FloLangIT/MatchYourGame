@@ -16,7 +16,7 @@ public class UserProfileButtonListener extends ListenerAdapter {
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
         //Main Page
-        if(event.getButton().getCustomId().startsWith("friends")) {
+        if(event.getButton().getCustomId().equals("friends")) {
             UserObject userObject = UserController.get(event.getUser().getIdLong());
             event.deferEdit().queue();
             new UserControlManager(event.getMessage(), userObject).loadFriendsMainPage();

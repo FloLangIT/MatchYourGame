@@ -1,0 +1,6 @@
+package de.flolang.matchyourgame.manager.lobby;
+
+public enum LobbyJoinResult {
+    JOINED, LOBBY_NOT_FOUND, LOBBY_CLOSED, PROFILE_MISMATCH, PARTY_HOST_REQUIRED,
+    PARTY_TOO_LARGE, LANGUAGE_MISMATCH, ALREADY_MEMBER, DATABASE_ERROR
+}
