@@ -174,7 +174,11 @@ public class UserControlManager {
                     Button.primary("lobbySettings-" + lobby.getId(), t("Lobby.Button.Settings")),
                     Button.danger("lobbyClose-" + lobby.getId(), t("Lobby.Button.Close"))));
         } else if (host) {
-            rows.add(ActionRow.of(Button.danger("lobbyClose-" + lobby.getId(), t("Lobby.Button.Close"))));
+            List<Button> actions = new ArrayList<>();
+            if (List.of(LobbyStatus.FORMING, LobbyStatus.READY, LobbyStatus.ACTIVE).contains(lobby.getStatus()))
+                actions.add(Button.primary("matchEntryOverview-" + lobby.getId(), t("Match.Button.Add")));
+            actions.add(Button.danger("lobbyClose-" + lobby.getId(), t("Lobby.Button.Close")));
+            rows.add(ActionRow.of(actions));
         }
         if (host) {
             List<SelectOption> kickable = LobbyRepository.memberIds(lobby.getId()).stream()

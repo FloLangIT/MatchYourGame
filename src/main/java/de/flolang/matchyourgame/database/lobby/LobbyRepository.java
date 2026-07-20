@@ -330,6 +330,19 @@ public final class LobbyRepository {
         return ids;
     }
 
+    public static List<Integer> allMemberIds(int lobbyId) {
+        List<Integer> ids = new ArrayList<>();
+        try (Connection conn = Database.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "SELECT user_id FROM lobby_member WHERE lobby_id=? ORDER BY joined_at,user_id")) {
+            ps.setInt(1, lobbyId);
+            try (ResultSet rs = ps.executeQuery()) { while (rs.next()) ids.add(rs.getInt(1)); }
+        } catch (SQLException e) {
+            LOGGER.error("Could not list historical lobby members", e);
+        }
+        return ids;
+    }
+
     public static void configureQueues(int lobbyId, boolean passive, boolean clan) {
         update("UPDATE lobby SET passive_queue=?,clan_queue=? WHERE id=?", ps -> {
             ps.setBoolean(1, passive); ps.setBoolean(2, clan); ps.setInt(3, lobbyId);
@@ -415,6 +428,34 @@ public final class LobbyRepository {
         update("UPDATE lobby_member SET voice_joined_at=CURRENT_TIMESTAMP,voice_rejoin_deadline=NULL,voice_extension_used=FALSE " +
                         "WHERE lobby_id=? AND user_id=? AND left_at IS NULL",
                 ps -> { ps.setInt(1, lobbyId); ps.setInt(2, userId); });
+    }
+
+    public static void storeVoiceReadyMessage(int lobbyId, int userId, String messageId) {
+        update("INSERT INTO lobby_voice_ready_message (lobby_id,user_id,message_id) VALUES (?,?,?) " +
+                "ON DUPLICATE KEY UPDATE message_id=VALUES(message_id)", ps -> {
+            ps.setInt(1, lobbyId); ps.setInt(2, userId); ps.setString(3, messageId);
+        });
+    }
+
+    public static String takeVoiceReadyMessage(int lobbyId, int userId) {
+        try (Connection conn = Database.getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement select = conn.prepareStatement(
+                    "SELECT message_id FROM lobby_voice_ready_message WHERE lobby_id=? AND user_id=? FOR UPDATE");
+                 PreparedStatement delete = conn.prepareStatement(
+                         "DELETE FROM lobby_voice_ready_message WHERE lobby_id=? AND user_id=?")) {
+                select.setInt(1, lobbyId); select.setInt(2, userId);
+                String messageId;
+                try (ResultSet rs = select.executeQuery()) { messageId = rs.next() ? rs.getString(1) : null; }
+                delete.setInt(1, lobbyId); delete.setInt(2, userId); delete.executeUpdate();
+                conn.commit();
+                return messageId;
+            } catch (SQLException e) { conn.rollback(); throw e; }
+            finally { conn.setAutoCommit(true); }
+        } catch (SQLException e) {
+            LOGGER.error("Could not take voice-ready message for lobby {} user {}", lobbyId, userId, e);
+            return null;
+        }
     }
 
     public static void markVoiceLeft(int lobbyId, int userId) {
