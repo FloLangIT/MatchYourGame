@@ -37,7 +37,7 @@ public final class MatchService {
             players.add(new PlayerTarget(memberId, member.getUsername()));
         }
         List<StatTask> tasks = new ArrayList<>();
-        for (GameStatDefinition definition : GameStatRepository.getForGame(lobby.getGameID())) {
+        for (GameStatDefinition definition : GameStatRepository.getEffectiveForGame(lobby.getGameID())) {
             if (definition.scope() == GameStatDefinition.Scope.PLAYER) {
                 for (PlayerTarget player : players) tasks.add(new StatTask(definition, player.userId(), null,
                         definition.name() + " · " + player.username()));
