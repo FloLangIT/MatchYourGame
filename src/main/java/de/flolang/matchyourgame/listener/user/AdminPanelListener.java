@@ -5,6 +5,8 @@ import de.flolang.matchyourgame.database.game.GameObject;
 import de.flolang.matchyourgame.database.game.GameOption;
 import de.flolang.matchyourgame.database.game.GameOptionRepository;
 import de.flolang.matchyourgame.database.game.GameRepository;
+import de.flolang.matchyourgame.database.game.GameStatDefinition;
+import de.flolang.matchyourgame.database.game.GameStatRepository;
 import de.flolang.matchyourgame.database.game.RankCompatibilityRepository;
 import de.flolang.matchyourgame.database.guild.GuildRepository;
 import de.flolang.matchyourgame.database.lobby.LobbyObject;
@@ -47,6 +49,8 @@ public final class AdminPanelListener extends ListenerAdapter {
                 && !id.startsWith("adminActiveParties") && !id.startsWith("adminGames")
                 && !id.startsWith("adminGameOpen-") && !id.startsWith("adminGameEdit-")
                 && !id.startsWith("adminGameOptions-") && !id.equals("adminGameCreate")
+                && !id.startsWith("adminGameStats-") && !id.startsWith("adminGameStatAdd-")
+                && !id.startsWith("adminGameStatInheritance-")
                 && !id.equals("adminBroadcast")) return;
         UserObject actor = AdminAccess.panelUser(event.getUser().getIdLong());
         if (actor == null) { event.reply("Unauthorized").setEphemeral(true).queue(); return; }
@@ -70,6 +74,27 @@ public final class AdminPanelListener extends ListenerAdapter {
             int[] values=numbers(id); GameObject game=GameRepository.get(values[0]);
             if(game==null){event.reply(t(actor,"Admin.Games.NotFound")).setEphemeral(true).queue();return;}
             event.replyModal(optionsModal(game,values[1],actor)).queue();
+        } else if (id.startsWith("adminGameStats-")) {
+            if (!AdminAccess.canManageGames(actor)) { event.reply(t(actor, "Admin.Panel.NoPermission")).setEphemeral(true).queue(); return; }
+            int[] values = numbers(id);
+            event.deferEdit().queue();
+            showStatistics(event.getMessage(), actor, values[0], values[1]);
+        } else if (id.startsWith("adminGameStatAdd-")) {
+            if (!AdminAccess.canManageGames(actor)) { event.reply(t(actor, "Admin.Panel.NoPermission")).setEphemeral(true).queue(); return; }
+            int[] values = numbers(id);
+            GameObject game = GameRepository.get(values[0]);
+            if (game == null) { event.reply(t(actor, "Admin.Games.NotFound")).setEphemeral(true).queue(); return; }
+            GameStatDefinition.Scope scope = id.contains("-TEAM-") ? GameStatDefinition.Scope.TEAM : GameStatDefinition.Scope.PLAYER;
+            event.replyModal(statisticModal(actor, game, values[1], scope, null)).queue();
+        } else if (id.startsWith("adminGameStatInheritance-")) {
+            if (!AdminAccess.canManageGames(actor)) { event.reply(t(actor, "Admin.Panel.NoPermission")).setEphemeral(true).queue(); return; }
+            int[] values = numbers(id);
+            GameObject game = GameRepository.get(values[0]);
+            if (game == null || game.getSubGameFrom() == null) { event.reply(t(actor, "Admin.Games.NotFound")).setEphemeral(true).queue(); return; }
+            boolean saved = GameStatRepository.setInheritsFromParent(game.getId(),
+                    !GameStatRepository.inheritsFromParent(game.getId()));
+            event.deferEdit().queue();
+            if (saved) showStatistics(event.getMessage(), actor, values[0], values[1]);
         } else if (id.equals("adminBroadcast")) {
             if (AdminAccess.role(actor) != UserRole.ADMIN) {
                 event.reply(t(actor, "Admin.Panel.NoPermission")).setEphemeral(true).queue(); return;
@@ -89,9 +114,22 @@ public final class AdminPanelListener extends ListenerAdapter {
     }
 
     @Override public void onStringSelectInteraction(StringSelectInteractionEvent event) {
-        if (!event.getComponentId().startsWith("adminGameSelect-") || event.getValues().isEmpty()) return;
+        if ((!event.getComponentId().startsWith("adminGameSelect-")
+                && !event.getComponentId().startsWith("adminGameStatSelect-")) || event.getValues().isEmpty()) return;
         UserObject actor = AdminAccess.panelUser(event.getUser().getIdLong());
         if (actor == null || !AdminAccess.canManageGames(actor)) { event.reply("Unauthorized").setEphemeral(true).queue(); return; }
+        if (event.getComponentId().startsWith("adminGameStatSelect-")) {
+            int[] values = numbers(event.getComponentId());
+            int statisticId;
+            try { statisticId = Integer.parseInt(event.getValues().getFirst()); } catch (NumberFormatException e) { return; }
+            GameObject game = GameRepository.get(values[0]);
+            GameStatDefinition statistic = GameStatRepository.get(statisticId);
+            if (game == null || statistic == null || statistic.gameId() != game.getId()) {
+                event.reply(t(actor, "Admin.Games.Statistics.NotFound")).setEphemeral(true).queue(); return;
+            }
+            event.replyModal(statisticModal(actor, game, values[1], statistic.scope(), statistic)).queue();
+            return;
+        }
         int gameId;
         try { gameId = Integer.parseInt(event.getValues().getFirst()); } catch (NumberFormatException e) { return; }
         event.deferEdit().queue(); showGame(event.getMessage(), actor, gameId, suffix(event.getComponentId()));
@@ -100,7 +138,10 @@ public final class AdminPanelListener extends ListenerAdapter {
     @Override public void onModalInteraction(ModalInteractionEvent event) {
         String id = event.getModalId();
         if (!id.equals("adminGameCreateSubmit") && !id.startsWith("adminGameEditSubmit-")
-                && !id.startsWith("adminGameOptionsSubmit-") && !id.equals("adminBroadcastSubmit")) return;
+                && !id.startsWith("adminGameOptionsSubmit-")
+                && !id.startsWith("adminGameStatCreateSubmit-")
+                && !id.startsWith("adminGameStatEditSubmit-")
+                && !id.equals("adminBroadcastSubmit")) return;
         UserObject actor = AdminAccess.panelUser(event.getUser().getIdLong());
         if (actor == null) { event.reply("Unauthorized").setEphemeral(true).queue(); return; }
         if (id.equals("adminBroadcastSubmit")) {
@@ -119,6 +160,10 @@ public final class AdminPanelListener extends ListenerAdapter {
             return;
         }
         if (!AdminAccess.canManageGames(actor)) { event.reply("Unauthorized").setEphemeral(true).queue(); return; }
+        if (id.startsWith("adminGameStatCreateSubmit-") || id.startsWith("adminGameStatEditSubmit-")) {
+            handleStatisticSubmit(event, actor);
+            return;
+        }
         if (id.startsWith("adminGameOptionsSubmit-")) {
             int[] values=numbers(id); GameObject game=GameRepository.get(values[0]);
             boolean saved=game!=null;
@@ -255,7 +300,46 @@ public final class AdminPanelListener extends ListenerAdapter {
                         "%openLobbies%",String.valueOf(stats.openLobbies())))).build()).setComponents(ActionRow.of(
                         Button.primary("adminGameEdit-"+gameId+"-"+page,t(actor,"Admin.Games.Edit")),
                         Button.secondary("adminGameOptions-"+gameId+"-"+page,t(actor,"Admin.Games.Options")),
+                        Button.secondary("adminGameStats-"+gameId+"-"+page,t(actor,"Admin.Games.Statistics.Button")),
                         Button.primary("adminGames-"+page,t(actor,"UserProfile.Button.Back")))).queue();
+    }
+
+    private static void showStatistics(Message message, UserObject actor, int gameId, int page) {
+        GameObject game = GameRepository.get(gameId);
+        if (game == null) { showGames(message, actor, page); return; }
+        List<GameStatDefinition> own = GameStatRepository.getForGame(gameId);
+        boolean mode = game.getSubGameFrom() != null;
+        boolean inherits = mode && GameStatRepository.inheritsFromParent(gameId);
+        List<GameStatDefinition> inherited = inherits
+                ? GameStatRepository.getEffectiveForGame(game.getSubGameFrom().getId()) : List.of();
+        String inheritedText = inherited.stream().map(AdminPanelListener::statisticLine)
+                .reduce((a, b) -> a + "\n" + b).orElse(t(actor, "Admin.Games.Statistics.None"));
+        String ownText = own.stream().map(AdminPanelListener::statisticLine)
+                .reduce((a, b) -> a + "\n" + b).orElse(t(actor, "Admin.Games.Statistics.None"));
+        String description = t(actor, "Admin.Games.Statistics.Description", Map.of(
+                "%inheritance%", mode ? (inherits ? t(actor, "General.On") : t(actor, "General.Off")) : "-",
+                "%inherited%", inheritedText, "%own%", ownText));
+        List<ActionRow> rows = new ArrayList<>();
+        rows.add(ActionRow.of(
+                Button.success("adminGameStatAdd-TEAM-" + gameId + "-" + page,
+                        t(actor, "Admin.Games.Statistics.AddTeam")),
+                Button.success("adminGameStatAdd-PLAYER-" + gameId + "-" + page,
+                        t(actor, "Admin.Games.Statistics.AddPlayer"))));
+        if (mode) rows.add(ActionRow.of(Button.secondary("adminGameStatInheritance-" + gameId + "-" + page,
+                t(actor, inherits ? "Admin.Games.Statistics.DisableInheritance" : "Admin.Games.Statistics.EnableInheritance"))));
+        if (!own.isEmpty()) rows.add(ActionRow.of(StringSelectMenu.create("adminGameStatSelect-" + gameId + "-" + page)
+                .setPlaceholder(t(actor, "Admin.Games.Statistics.Select"))
+                .addOptions(own.stream().limit(25).map(stat -> SelectOption.of(
+                        stat.name().length() > 80 ? stat.name().substring(0, 80) : stat.name(), String.valueOf(stat.id()))
+                        .withDescription(stat.scope().name() + " · " + stat.valueType().name())).toList()).build()));
+        rows.add(ActionRow.of(Button.primary("adminGameOpen-" + gameId + "-" + page,
+                t(actor, "UserProfile.Button.Back"))));
+        message.editMessageEmbeds(new EmbedCreator().setTitle(t(actor, "Admin.Games.Statistics.Title",
+                Map.of("%game%", game.getName()))).setDescription(description).build()).setComponents(rows).queue();
+    }
+
+    private static String statisticLine(GameStatDefinition statistic) {
+        return "• **" + statistic.name() + "** · " + statistic.scope().name() + " · " + statistic.valueType().name();
     }
 
     private static Modal optionsModal(GameObject game,int page,UserObject actor){
@@ -268,13 +352,16 @@ public final class AdminPanelListener extends ListenerAdapter {
 
     private static Label optionInput(UserObject actor,String key,String id,GameObject game,GameOption.Type type){
         String current=GameOptionRepository.get(game.getId(),type).stream().map(GameOption::name).reduce((a,b)->a+", "+b).orElse("");
-        return Label.of(t(actor,key),TextInput.create(id,TextInputStyle.PARAGRAPH).setRequired(false).setMaxLength(2000).setValue(current).build());
+        TextInput.Builder input = TextInput.create(id,TextInputStyle.PARAGRAPH).setRequired(false).setMaxLength(2000);
+        if (!current.isBlank()) input.setValue(current);
+        return Label.of(t(actor,key), input.build());
     }
 
     private static Modal gameModal(String id, UserObject actor, GameObject game) {
+        TextInput.Builder nameInput = TextInput.create("name",TextInputStyle.SHORT).setRequired(true).setMaxLength(255);
+        if (game != null && !game.getName().isBlank()) nameInput.setValue(game.getName());
         Modal.Builder modal=Modal.create(id,t(actor,game==null?"Admin.Games.CreateTitle":"Admin.Games.EditTitle"))
-                .addComponents(Label.of(t(actor,"Admin.Games.Name"),TextInput.create("name",TextInputStyle.SHORT).setRequired(true)
-                                .setMaxLength(255).setValue(game==null?"":game.getName()).build()),
+                .addComponents(Label.of(t(actor,"Admin.Games.Name"), nameInput.build()),
                         Label.of(t(actor,"Admin.Games.Skillbased"),TextInput.create("skillbased",TextInputStyle.SHORT).setRequired(true)
                                 .setValue(String.valueOf(game!=null&&game.isSkillbased())).build()),
                         Label.of(t(actor,"Admin.Games.Active"),TextInput.create("active",TextInputStyle.SHORT).setRequired(true)
@@ -282,6 +369,68 @@ public final class AdminPanelListener extends ListenerAdapter {
         if(game==null) modal.addComponents(Label.of(t(actor,"Admin.Games.Parent"),TextInput.create("parent",TextInputStyle.SHORT)
                 .setRequired(true).setValue("0").build()));
         return modal.build();
+    }
+
+    private static Modal statisticModal(UserObject actor, GameObject game, int page,
+                                        GameStatDefinition.Scope scope, GameStatDefinition statistic) {
+        boolean editing = statistic != null;
+        String id = editing ? "adminGameStatEditSubmit-" + statistic.id() + "-" + game.getId() + "-" + page
+                : "adminGameStatCreateSubmit-" + scope.name() + "-" + game.getId() + "-" + page;
+        TextInput.Builder name = TextInput.create("statName", TextInputStyle.SHORT).setRequired(true).setMaxLength(80);
+        if (editing) name.setValue(statistic.name());
+        List<SelectOption> types = new ArrayList<>();
+        for (GameStatDefinition.ValueType type : GameStatDefinition.ValueType.values())
+            types.add(SelectOption.of(t(actor, "Admin.Games.Statistics.Type." + type.name()), type.name())
+                    .withDefault(editing && statistic.valueType() == type));
+        Modal.Builder modal = Modal.create(id, t(actor, editing
+                        ? "Admin.Games.Statistics.EditTitle" : "Admin.Games.Statistics.AddTitle"))
+                .addComponents(Label.of(t(actor, "Admin.Games.Statistics.Name"), name.build()),
+                        Label.of(t(actor, "Admin.Games.Statistics.ValueType"), StringSelectMenu.create("statType")
+                                .addOptions(types).setRequiredRange(1, 1).build()));
+        if (editing) modal.addComponents(Label.of(t(actor, "Admin.Games.Statistics.Action"),
+                StringSelectMenu.create("statAction")
+                        .addOption(t(actor, "Admin.Games.Statistics.Save"), "SAVE")
+                        .addOption(t(actor, "Admin.Games.Statistics.Delete"), "DELETE")
+                        .setRequiredRange(1, 1).build()));
+        return modal.build();
+    }
+
+    private static void handleStatisticSubmit(ModalInteractionEvent event, UserObject actor) {
+        String[] parts = event.getModalId().split("-");
+        boolean editing = event.getModalId().startsWith("adminGameStatEditSubmit-");
+        int statisticId = 0, gameId, page;
+        try {
+            if (editing) {
+                statisticId = Integer.parseInt(parts[parts.length - 3]);
+                gameId = Integer.parseInt(parts[parts.length - 2]);
+            } else gameId = Integer.parseInt(parts[parts.length - 2]);
+            page = Integer.parseInt(parts[parts.length - 1]);
+        } catch (NumberFormatException exception) {
+            event.reply(t(actor, "Admin.Games.Statistics.SaveFailed")).setEphemeral(true).queue(); return;
+        }
+        GameObject game = GameRepository.get(gameId);
+        if (game == null) { event.reply(t(actor, "Admin.Games.NotFound")).setEphemeral(true).queue(); return; }
+        boolean saved;
+        try {
+            if (editing && "DELETE".equals(selectValue(event, "statAction"))) {
+                saved = GameStatRepository.remove(statisticId, gameId);
+            } else {
+                GameStatDefinition.ValueType type = GameStatDefinition.ValueType.valueOf(selectValue(event, "statType"));
+                String name = value(event, "statName");
+                if (editing) saved = GameStatRepository.update(statisticId, gameId, name, type);
+                else {
+                    GameStatDefinition.Scope scope = GameStatDefinition.Scope.valueOf(parts[parts.length - 3]);
+                    saved = GameStatRepository.create(gameId, name, scope, type, true) != null;
+                }
+            }
+        } catch (RuntimeException exception) { saved = false; }
+        event.reply(t(actor, saved ? "Admin.Games.Statistics.Saved" : "Admin.Games.Statistics.SaveFailed"))
+                .setEphemeral(true).queue();
+        if (saved && event.getMessage() != null) showStatistics(event.getMessage(), actor, gameId, page);
+    }
+
+    private static String selectValue(ModalInteractionEvent event, String id) {
+        return event.getValue(id).getAsStringList().getFirst();
     }
 
     private static Label deliveryInput(UserObject actor, String key) {
