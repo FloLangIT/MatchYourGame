@@ -18,6 +18,7 @@ import de.flolang.matchyourgame.manager.party.PartyService;
 import de.flolang.matchyourgame.manager.lobby.GameSelectionWizard;
 import de.flolang.matchyourgame.manager.lobby.LobbyCapacityRules;
 import de.flolang.matchyourgame.manager.lobby.LobbyService;
+import de.flolang.matchyourgame.manager.lobby.GameMessageVisibility;
 import de.flolang.matchyourgame.logging.DiscordLogService;
 import de.flolang.matchyourgame.database.review.ReviewAssignment;
 import de.flolang.matchyourgame.database.review.ReviewRepository;
@@ -332,7 +333,11 @@ public final class LobbyInteractionListener extends ListenerAdapter {
             int targetLobbyId = Integer.parseInt(event.getValues().getFirst());
             LobbyService.LobbyMergeResult result = Main.lobbyService.mergeLobbies(
                     sourceLobbyId, targetLobbyId, user.getId());
-            event.reply(t(user.getId(), "Lobby.Merge.Result." + result.name(), Map.of(
+            LobbyObject sourceLobby = LobbyRepository.get(sourceLobbyId);
+            String resultKey = result == LobbyService.LobbyMergeResult.INCOMPATIBLE
+                    && sourceLobby != null && !GameMessageVisibility.showsRanks(sourceLobby.getGameID())
+                    ? "INCOMPATIBLE_NO_RANK" : result.name();
+            event.reply(t(user.getId(), "Lobby.Merge.Result." + resultKey, Map.of(
                             "%targetLobby%", String.valueOf(targetLobbyId))))
                     .setEphemeral(true).queue(ignored -> {
                         if (result == LobbyService.LobbyMergeResult.MERGED) event.getMessage().delete().queue();
@@ -370,8 +375,14 @@ public final class LobbyInteractionListener extends ListenerAdapter {
                             .setEphemeral(true).queue();
                 }
             } else if (id.startsWith("lobbyInviteFriend-")) {
-                LobbyInvitation invitation = Main.lobbyService.inviteFriend(user.getId(), suffix(id), value(event, "username"));
-                event.reply(t(user.getId(), invitation == null ? "Lobby.InviteFriend.Failed" : "Lobby.InviteFriend.Success"))
+                int lobbyId = suffix(id);
+                LobbyService.FriendInviteResult result = Main.lobbyService.inviteFriend(
+                        user.getId(), lobbyId, value(event, "username"));
+                LobbyObject lobby = LobbyRepository.get(lobbyId);
+                String statusKey = result.status() == LobbyService.FriendInviteStatus.PROFILE_MISMATCH
+                        && lobby != null && !GameMessageVisibility.showsRoles(lobby.getGameID())
+                        ? "PROFILE_MISMATCH_NO_ROLE" : result.status().name();
+                event.reply(t(user.getId(), "Lobby.InviteFriend." + statusKey))
                         .setEphemeral(true).queue();
             } else if (id.startsWith("lobbyInviteClan-")) {
                 int count = Main.lobbyService.inviteClan(user.getId(), suffix(id), integer(event, "clan"));
@@ -479,7 +490,8 @@ public final class LobbyInteractionListener extends ListenerAdapter {
         modal.addComponents(Label.of(t(user.getId(), "Lobby.Settings.Modal.Capacity"),
                 TextInput.create("capacity", TextInputStyle.SHORT)
                         .setValue(String.valueOf(lobby.getMaxPlayers())).setRequired(true).setMaxLength(2).build()));
-        List<GameOption> allowed = Main.lobbyService.compatibleRanksForCurrentMembers(lobby);
+        List<GameOption> allowed = GameMessageVisibility.showsRanks(lobby.getGameID())
+                ? Main.lobbyService.compatibleRanksForCurrentMembers(lobby) : List.of();
         if (!allowed.isEmpty()) {
             String allowedLabel = allowed.getFirst().name() + " – " + allowed.getLast().name();
             modal.addComponents(Label.of(trim(t(user.getId(), "Lobby.Settings.Modal.Minimum"), 45),
@@ -507,8 +519,10 @@ public final class LobbyInteractionListener extends ListenerAdapter {
                     Map.of("%rank%", exception.getMessage()))).setEphemeral(true).queue();
             return;
         }
-        Integer unrestrictedSize = RankCompatibilityRepository.getUnrestrictedPartySize(lobby.getGameID());
-        if (LobbyCapacityRules.offersUnrestrictedRankChoice(capacity, unrestrictedSize)
+        Integer unrestrictedSize = GameMessageVisibility.showsRanks(lobby.getGameID())
+                ? RankCompatibilityRepository.getUnrestrictedPartySize(lobby.getGameID()) : null;
+        if (GameMessageVisibility.showsRanks(lobby.getGameID())
+                && LobbyCapacityRules.offersUnrestrictedRankChoice(capacity, unrestrictedSize)
                 && !GameOptionRepository.get(lobby.getGameID(), GameOption.Type.RANK).isEmpty()) {
             String token = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
             pendingLobbySettings.put(token, new PendingLobbySettings(user.getId(), lobbyId, capacity,
@@ -564,6 +578,9 @@ public final class LobbyInteractionListener extends ListenerAdapter {
 
     private static String settingsResultMessage(int userId, LobbyService.LobbySettingsUpdate result) {
         if (result.status() == LobbyService.LobbySettingsStatus.UPDATED && result.lobby() != null) {
+            if (!GameMessageVisibility.showsRanks(result.lobby().getGameID()))
+                return t(userId, "Lobby.Settings.Result.UPDATED_NO_RANK", Map.of(
+                        "%capacity%", String.valueOf(result.lobby().getMaxPlayers())));
             String ranks;
             if (result.lobby().isRankRulesUnrestricted()) ranks = t(userId, "Lobby.View.AnyRank");
             else {
@@ -603,7 +620,10 @@ public final class LobbyInteractionListener extends ListenerAdapter {
     private static void showMergeCandidates(ButtonInteractionEvent event, int sourceLobbyId, UserObject user) {
         List<LobbyObject> candidates = Main.lobbyService.findMergeCandidates(sourceLobbyId, user.getId());
         if (candidates.isEmpty()) {
-            event.reply(t(user.getId(), "Lobby.Merge.None")).setEphemeral(true).queue();
+            LobbyObject source = LobbyRepository.get(sourceLobbyId);
+            String key = source != null && !GameMessageVisibility.showsRanks(source.getGameID())
+                    ? "Lobby.Merge.NoneNoRank" : "Lobby.Merge.None";
+            event.reply(t(user.getId(), key)).setEphemeral(true).queue();
             return;
         }
         List<SelectOption> options = candidates.stream().limit(25).map(candidate -> {
@@ -717,7 +737,9 @@ public final class LobbyInteractionListener extends ListenerAdapter {
     private static net.dv8tion.jda.api.entities.MessageEmbed browseEmbed(List<LobbyObject> lobbies, int page, int userId) {
         int from = Math.min(page * 5, lobbies.size());
         int to = Math.min(from + 5, lobbies.size());
-        String lines = lobbies.subList(from, to).stream().map(lobby -> t(userId, "Lobby.Browse.Entry", Map.of(
+        String lines = lobbies.subList(from, to).stream().map(lobby -> t(userId,
+                GameMessageVisibility.showsRanks(lobby.getGameID())
+                        ? "Lobby.Browse.Entry" : "Lobby.Browse.EntryNoRank", Map.of(
                 "%lobbyId%", String.valueOf(lobby.getId()), "%players%", String.valueOf(LobbyRepository.memberCount(lobby.getId())),
                 "%capacity%", String.valueOf(lobby.getMaxPlayers()), "%rankMin%", String.valueOf(lobby.getRankMin()),
                 "%rankMax%", String.valueOf(lobby.getRankMax())))).reduce((a, b) -> a + "\n" + b).orElse("-");

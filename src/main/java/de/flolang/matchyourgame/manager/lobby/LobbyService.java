@@ -72,13 +72,22 @@ public final class LobbyService {
         return LobbyRepository.get(lobby.getId());
     }
 
-    public LobbyInvitation inviteFriend(int leaderId, int lobbyId, String username) {
+    public FriendInviteResult inviteFriend(int leaderId, int lobbyId, String username) {
         LobbyObject lobby = LobbyRepository.get(lobbyId);
         UserObject friend = UserController.get(username);
-        if (lobby == null || lobby.getLeaderID() != leaderId || !lobby.isOpen() || friend == null) return null;
-        if (!FriendRepository.areFriends(leaderId, friend.getId())) return null;
-        if (!joiningProfilesMatch(lobby, List.of(friend.getId()))) return null;
-        return createAndSendInvitation(lobby, friend.getId(), InvitationSource.FRIEND);
+        if (lobby == null || lobby.getLeaderID() != leaderId || !lobby.isOpen() || friend == null)
+            return new FriendInviteResult(FriendInviteStatus.UNAVAILABLE, null);
+        if (!FriendRepository.areFriends(leaderId, friend.getId()))
+            return new FriendInviteResult(FriendInviteStatus.FRIENDSHIP_REQUIRED, null);
+        List<GameProfile> matchingProfiles = GameProfileRepository.getForGame(friend.getId(), lobby.getGameID())
+                .stream().filter(profile -> profileFiltersMatch(lobby, profile)).toList();
+        if (matchingProfiles.isEmpty())
+            return new FriendInviteResult(FriendInviteStatus.PROFILE_MISMATCH, null);
+        if (matchingProfiles.stream().noneMatch(profile -> rankMatchesCurrentMembers(lobby, profile.rankValue())))
+            return new FriendInviteResult(FriendInviteStatus.RANK_MISMATCH, null);
+        LobbyInvitation invitation = createAndSendInvitation(lobby, friend.getId(), InvitationSource.FRIEND);
+        return new FriendInviteResult(invitation == null ? FriendInviteStatus.UNAVAILABLE : FriendInviteStatus.INVITED,
+                invitation);
     }
 
     public QueueStartResult activatePassiveQueue(int actorId, int lobbyId) {
@@ -628,6 +637,16 @@ public final class LobbyService {
 
     public record QueueStartResult(int invitationsSent) {}
 
+    public record FriendInviteResult(FriendInviteStatus status, LobbyInvitation invitation) {}
+
+    public enum FriendInviteStatus {
+        INVITED,
+        FRIENDSHIP_REQUIRED,
+        RANK_MISMATCH,
+        PROFILE_MISMATCH,
+        UNAVAILABLE
+    }
+
     public record LobbySettingsUpdate(LobbySettingsStatus status, LobbyObject lobby,
                                       Integer effectiveRankMin, Integer effectiveRankMax) {}
 
@@ -649,7 +668,7 @@ public final class LobbyService {
                     .filter(candidate -> profileFiltersMatch(lobby, candidate))
                     .filter(candidate -> rankMatchesCurrentMembers(lobby, candidate.rankValue()))
                     .filter(candidate -> joiningProfiles.stream().allMatch(existing ->
-                            lobby.isRankRulesUnrestricted() || RankCompatibilityRepository.isCompatible(
+                            !QueueMatcher.usesRankRules(lobby) || RankCompatibilityRepository.isCompatible(
                                     lobby.getGameID(), existing.rankValue(), candidate.rankValue())))
                     .findFirst().orElse(null);
             if (profile == null) return false;
@@ -659,7 +678,7 @@ public final class LobbyService {
     }
 
     private boolean rankMatchesCurrentMembers(LobbyObject lobby, int candidateRank) {
-        if (lobby.isRankRulesUnrestricted()) return true;
+        if (!QueueMatcher.usesRankRules(lobby)) return true;
         Integer customMin = lobby.getCustomRankMin();
         Integer customMax = lobby.getCustomRankMax();
         if ((customMin != null && candidateRank < customMin) || (customMax != null && candidateRank > customMax))

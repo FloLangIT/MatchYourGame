@@ -300,6 +300,7 @@ Lobby:
   View:
     Title: "Lobby #%lobbyId%"
     Description: "Game: %game%\nPlayers: %players%/%capacity%\nPlatform: %platform%\nRegion: %region%\nCommunication languages: %languages%\nAllowed ranks: %ranks%\nVoice channel: %voiceInvite%\n\n**Players in this lobby**\n%playerList%"
+    DescriptionNoRank: "Game: %game%\nPlayers: %players%/%capacity%\nPlatform: %platform%\nRegion: %region%\nCommunication languages: %languages%\nVoice channel: %voiceInvite%\n\n**Players in this lobby**\n%playerList%"
     AnyRank: "All ranks"
     AnyLanguage: "Any"
     JoinVoice: "Join voice channel"
@@ -317,6 +318,7 @@ Lobby:
     UnknownRank: "Rank **%rank%** was not found for this game. Use its exact rank name."
     Result:
       UPDATED: "Lobby updated: **%capacity% players**, allowed ranks **%ranks%**."
+      UPDATED_NO_RANK: "Lobby updated: **%capacity% players**."
       UNAVAILABLE: "The lobby settings are no longer available or you are not the host."
       INVALID_CAPACITY: "The player count must be between 2 and 99."
       CAPACITY_BELOW_MEMBERS: "The player count cannot be lower than the current **%members% members**."
@@ -343,11 +345,13 @@ Lobby:
     OptionLabel: "Lobby #%lobbyId% · %host%"
     OptionDescription: "%players%/%capacity% players · %platform% · %region%"
     None: "No open PassiveQ lobby currently has enough space while matching every profile, language, and rank rule."
+    NoneNoRank: "No open PassiveQ lobby currently has enough space while matching every profile and language rule."
     Result:
       MERGED: "Your lobby was successfully merged into lobby **#%targetLobby%**."
       UNAVAILABLE: "One of the lobbies is no longer available or the target lobby is no longer searching through PassiveQ."
       NOT_ENOUGH_SPACE: "The target lobby no longer has enough space for every player."
       INCOMPATIBLE: "The lobbies are no longer compatible due to their profiles, languages, or rank rules."
+      INCOMPATIBLE_NO_RANK: "The lobbies are no longer compatible due to their profiles or languages."
   Clan:
     UseInviteButton: "Use “Invite crew” to invite crew members."
   Browse:
@@ -355,12 +359,17 @@ Lobby:
     Title: "Matching lobbies · %page%/%pages%"
     Join: "Join lobby #%lobbyId%"
     Entry: "#%lobbyId% · %players%/%capacity% · ranks %rankMin%–%rankMax%"
+    EntryNoRank: "#%lobbyId% · %players%/%capacity% players"
     Modal:
       Title: "Find matching lobbies"
       Game: "Game ID"
   InviteFriend:
-    Success: "Friend invited."
-    Failed: "Invitation failed. Direct invitations require an accepted friendship."
+    INVITED: "Friend invited."
+    FRIENDSHIP_REQUIRED: "Invitation failed. Direct invitations require an accepted friendship."
+    RANK_MISMATCH: "The ranks are not compatible in this lobby."
+    PROFILE_MISMATCH: "Your friend's game profile does not match this lobby's platform, region, or role."
+    PROFILE_MISMATCH_NO_ROLE: "Your friend's game profile does not match this lobby's platform or region."
+    UNAVAILABLE: "The invitation could not be sent. Check the username and whether the lobby is still open."
     Modal:
       Title: "Invite a friend"
       Username: "Friend username"
@@ -378,6 +387,7 @@ Lobby:
   Invitation:
     Title: "Lobby invitation"
     Description: "**%leader%** invited you to lobby **#%lobbyId%**.\nHost rating: **%leaderRating%**\nInvitation type: **%source%**\nGame: **%game%**\nPlayers: **%playerCount%/%capacity%**\nPlatform: **%platform%**\nRegion: **%region%**\nCommunication languages: **%languages%**\nAllowed ranks: **%ranks%**\n\n**Current players**\n%players%\n\nThis message is updated automatically whenever the lobby changes."
+    DescriptionNoRank: "**%leader%** invited you to lobby **#%lobbyId%**.\nHost rating: **%leaderRating%**\nInvitation type: **%source%**\nGame: **%game%**\nPlayers: **%playerCount%/%capacity%**\nPlatform: **%platform%**\nRegion: **%region%**\nCommunication languages: **%languages%**\n\n**Current players**\n%players%\n\nThis message is updated automatically whenever the lobby changes."
     Accept: "Join"
     LeavePartyAndAccept: "Leave party & accept"
     Decline: "Decline"
@@ -491,6 +501,9 @@ GameProfile:
     title: "Your game profiles"
     description: "**%count% profiles** · page %page%/%pages%\n\n%profiles%"
     Entry: "**%game% · %platform%**\nRegion: %region% · rank: %rank% · role: %role%"
+    EntryNoRank: "**%game% · %platform%**\nRegion: %region% · role: %role%"
+    EntryNoRole: "**%game% · %platform%**\nRegion: %region% · rank: %rank%"
+    EntryBasic: "**%game% · %platform%**\nRegion: %region%"
     None: "You have not created any game profiles yet."
     Configure: "Add / edit profile"
     Languages: "Communication languages"
@@ -499,6 +512,9 @@ GameProfile:
   Confirmation:
     Title: "Confirm game profile changes"
     Description: "Game: **%game%**\n\n**Current**\nPlatform: %oldPlatform%\nRegion: %oldRegion%\nRank: %oldRank%\nRole: %oldRole%\n\n**New**\nPlatform: %newPlatform%\nRegion: %newRegion%\nRank: %newRank%\nRole: %newRole%"
+    DescriptionNoRank: "Game: **%game%**\n\n**Current**\nPlatform: %oldPlatform%\nRegion: %oldRegion%\nRole: %oldRole%\n\n**New**\nPlatform: %newPlatform%\nRegion: %newRegion%\nRole: %newRole%"
+    DescriptionNoRole: "Game: **%game%**\n\n**Current**\nPlatform: %oldPlatform%\nRegion: %oldRegion%\nRank: %oldRank%\n\n**New**\nPlatform: %newPlatform%\nRegion: %newRegion%\nRank: %newRank%"
+    DescriptionBasic: "Game: **%game%**\n\n**Current**\nPlatform: %oldPlatform%\nRegion: %oldRegion%\n\n**New**\nPlatform: %newPlatform%\nRegion: %newRegion%"
     Confirm: "Save changes"
     Cancel: "Cancel"
   Saved: "The game profile for **%game%** on **%platform%** was saved."
@@ -515,6 +531,9 @@ GameProfile:
   AfterLobby:
     Title: "Did your game profile change?"
     Description: "Please check whether your rank, platform, region, or role changed after this lobby."
+    DescriptionNoRank: "Please check whether your platform, region, or role changed after this lobby."
+    DescriptionNoRole: "Please check whether your rank, platform, or region changed after this lobby."
+    DescriptionBasic: "Please check whether your platform or region changed after this lobby."
     Changed: "Update profile"
     Unchanged: "No change"
     ConfirmedUnchanged: "Your saved game profile remains unchanged."

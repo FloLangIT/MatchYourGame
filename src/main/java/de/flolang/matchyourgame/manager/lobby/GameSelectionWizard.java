@@ -684,7 +684,8 @@ public final class GameSelectionWizard extends ListenerAdapter {
 
     private static String changeSummary(Session session) {
         GameProfile old = session.originalProfile;
-        return t(session.userId, "GameProfile.Confirmation.Description", Map.of(
+        return t(session.userId, GameMessageVisibility.profileVariantKey(
+                "GameProfile.Confirmation.Description", session.modeId), Map.of(
                 "%game%", gameDisplayName(session.modeId),
                 "%oldPlatform%", old == null ? "-" : old.platform(),
                 "%oldRegion%", old == null ? "-" : old.region(),

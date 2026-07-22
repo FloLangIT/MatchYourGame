@@ -394,12 +394,14 @@ public final class LobbyDiscordCoordinator {
     }
 
     public void promptGameProfileUpdates(LobbyObject lobby) {
+        String descriptionKey = GameMessageVisibility.profileVariantKey(
+                "GameProfile.AfterLobby.Description", lobby.getGameID());
         for (int userId : LobbyRepository.memberIds(lobby.getId())) {
             UserObject user = UserController.get(userId);
             if (user == null) continue;
             jda.retrieveUserById(user.getDiscordID()).queue(discordUser -> discordUser.openPrivateChannel().queue(dm ->
                     dm.sendMessageEmbeds(new EmbedCreator().setTitle(t(userId, "GameProfile.AfterLobby.Title"))
-                                    .setDescription(t(userId, "GameProfile.AfterLobby.Description")).build())
+                                    .setDescription(t(userId, descriptionKey)).build())
                             .setComponents(ActionRow.of(
                                     Button.primary("gameProfileChanged-" + lobby.getGameID(), t(userId, "GameProfile.AfterLobby.Changed")),
                                     Button.secondary("gameProfileUnchanged-" + lobby.getGameID(), t(userId, "GameProfile.AfterLobby.Unchanged"))))
@@ -501,7 +503,8 @@ public final class LobbyDiscordCoordinator {
         replacements.put("%capacity%", String.valueOf(lobby.getMaxPlayers()));
         replacements.put("%playerCount%", String.valueOf(LobbyRepository.memberCount(lobby.getId())));
         replacements.put("%players%", invitationPlayers(lobby, recipient.getId()));
-        replacements.put("%ranks%", compatibleRankLabel(lobby, recipient.getId()));
+        if (GameMessageVisibility.showsRanks(lobby.getGameID()))
+            replacements.put("%ranks%", compatibleRankLabel(lobby, recipient.getId()));
         String languages = LobbyLanguageRepository.get(lobby.getId()).stream()
                 .map(code -> CommunicationLanguageNames.displayName(code, recipient.getLanguage()))
                 .reduce((first, next) -> first + ", " + next)
@@ -511,7 +514,8 @@ public final class LobbyDiscordCoordinator {
                 : ratingLabel(leader.getId(), recipient.getId()));
         replacements.put("%source%", t(recipient.getId(), "Lobby.Invitation.Source." + invitation.source().name()));
         return new EmbedCreator().setTitle(t(recipient.getId(), "Lobby.Invitation.Title"))
-                .setDescription(t(recipient.getId(), "Lobby.Invitation.Description", replacements)).build();
+                .setDescription(t(recipient.getId(), GameMessageVisibility.showsRanks(lobby.getGameID())
+                        ? "Lobby.Invitation.Description" : "Lobby.Invitation.DescriptionNoRank", replacements)).build();
     }
 
     private static ActionRow invitationControls(LobbyInvitation invitation, UserObject recipient) {
