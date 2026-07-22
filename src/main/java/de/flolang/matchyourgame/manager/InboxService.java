@@ -5,6 +5,7 @@ import de.flolang.matchyourgame.database.user.InboxMessageRepository;
 import de.flolang.matchyourgame.database.user.UserObject;
 import de.flolang.matchyourgame.database.user.UserRepository;
 import de.flolang.matchyourgame.embed.EmbedCreator;
+import de.flolang.matchyourgame.language.Language;
 import de.flolang.matchyourgame.language.LanguageManager;
 import de.flolang.matchyourgame.logging.DiscordLogService;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
@@ -42,16 +43,18 @@ public final class InboxService {
 
     public static List<InboxMessageRepository.InboxMessage> broadcast(UserObject sender, String title,
                                                                        String content,
-                                                                       InboxMessageRepository.DeliveryMode mode) {
+                                                                       InboxMessageRepository.DeliveryMode mode,
+                                                                       Language language) {
         if (sender == null) return List.of();
         List<InboxMessageRepository.InboxMessage> messages = InboxMessageRepository.createBroadcast(
-                sender.getId(), title, content, mode);
+                sender.getId(), title, content, mode, language);
         for (InboxMessageRepository.InboxMessage message : messages) {
             ManagementMessageUpdater.refreshMainPage(message.recipientUserId());
             if (mode == InboxMessageRepository.DeliveryMode.DIRECT_DM) deliver(message);
         }
         DiscordLogService.action("ADMIN_BROADCAST", "Admin " + sender.getUsername() + " (#" + sender.getId()
-                + ") hat einen Broadcast an " + messages.size() + " Nutzer erstellt · Versand " + mode.name());
+                + ") hat einen Broadcast an " + messages.size() + " Nutzer erstellt · Sprache "
+                + language.name() + " · Versand " + mode.name());
         return messages;
     }
 

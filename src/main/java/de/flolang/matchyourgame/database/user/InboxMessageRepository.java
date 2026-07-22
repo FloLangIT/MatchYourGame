@@ -1,6 +1,7 @@
 package de.flolang.matchyourgame.database.user;
 
 import de.flolang.matchyourgame.database.Database;
+import de.flolang.matchyourgame.language.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,13 +58,15 @@ public final class InboxMessageRepository {
     }
 
     public static List<InboxMessage> createBroadcast(int senderId, String title, String content,
-                                                      DeliveryMode deliveryMode) {
+                                                      DeliveryMode deliveryMode, Language language) {
         String batch = UUID.randomUUID().toString();
         String sql = "INSERT INTO user_inbox_message(recipient_user_id,sender_user_id,title,content,broadcast," +
-                "delivery_mode,batch_key) SELECT id,?,?,?,?,?,? FROM user WHERE anonymized=FALSE";
+                "delivery_mode,batch_key) SELECT id,?,?,?,?,?,? FROM user " +
+                "WHERE anonymized=FALSE AND language=?";
         try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, senderId); ps.setString(2, title); ps.setString(3, content);
             ps.setBoolean(4, true); ps.setString(5, deliveryMode.name()); ps.setString(6, batch);
+            ps.setString(7, language.name());
             ps.executeUpdate();
             return getBatch(batch);
         } catch (SQLException e) { LOGGER.error("Could not create broadcast inbox messages", e); return List.of(); }

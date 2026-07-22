@@ -734,10 +734,14 @@ Admin:
   Broadcast:
     Sent: "Der Broadcast wurde für **%count% Nutzer** gespeichert. Versandart: **%delivery%**."
     Failed: "Der Broadcast konnte nicht gespeichert werden."
+    Language:
+      DE: "Deutsch"
+      EN: "Englisch"
     Modal:
       Title: "Broadcast an alle Nutzer"
       EmbedTitle: "Titel der Nachricht"
       Message: "Nachricht"
+      Language: "Sprache der Empfänger"
       Delivery: "Versandart"
   ActiveLobbies:
     Title: "Aktive Lobbys"

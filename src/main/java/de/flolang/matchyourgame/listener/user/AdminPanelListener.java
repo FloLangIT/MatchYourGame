@@ -18,6 +18,7 @@ import de.flolang.matchyourgame.database.user.UserRepository;
 import de.flolang.matchyourgame.database.user.UserRole;
 import de.flolang.matchyourgame.database.user.InboxMessageRepository;
 import de.flolang.matchyourgame.embed.EmbedCreator;
+import de.flolang.matchyourgame.language.Language;
 import de.flolang.matchyourgame.language.LanguageManager;
 import de.flolang.matchyourgame.manager.AdminAccess;
 import de.flolang.matchyourgame.manager.InboxService;
@@ -105,6 +106,7 @@ public final class AdminPanelListener extends ListenerAdapter {
                                     TextInput.create("title", TextInputStyle.SHORT).setRequired(true).setMaxLength(100).build()),
                             Label.of(t(actor, "Admin.Broadcast.Modal.Message"),
                                     TextInput.create("message", TextInputStyle.PARAGRAPH).setRequired(true).setMaxLength(3000).build()),
+                            languageInput(actor),
                             deliveryInput(actor, "Admin.Broadcast.Modal.Delivery"))
                     .build()).queue();
         } else {
@@ -149,10 +151,11 @@ public final class AdminPanelListener extends ListenerAdapter {
                 event.reply(t(actor, "Admin.Panel.NoPermission")).setEphemeral(true).queue(); return;
             }
             InboxMessageRepository.DeliveryMode delivery = delivery(event);
+            Language language = broadcastLanguage(event);
             String title = value(event, "title"), content = value(event, "message");
             event.deferReply(true).queue(hook -> {
                 List<InboxMessageRepository.InboxMessage> messages = InboxService.broadcast(
-                        actor, title, content, delivery);
+                        actor, title, content, delivery, language);
                 hook.editOriginal(t(actor, messages.isEmpty() ? "Admin.Broadcast.Failed" : "Admin.Broadcast.Sent",
                         Map.of("%count%", String.valueOf(messages.size()), "%delivery%",
                                 t(actor, "Admin.Delivery." + delivery.name())))).queue();
@@ -438,6 +441,18 @@ public final class AdminPanelListener extends ListenerAdapter {
                 .addOption(t(actor, "Admin.Delivery.SILENT"), InboxMessageRepository.DeliveryMode.SILENT.name())
                 .addOption(t(actor, "Admin.Delivery.DIRECT_DM"), InboxMessageRepository.DeliveryMode.DIRECT_DM.name())
                 .setRequiredRange(1, 1).build());
+    }
+
+    private static Label languageInput(UserObject actor) {
+        StringSelectMenu.Builder menu = StringSelectMenu.create("language").setRequiredRange(1, 1);
+        for (Language language : Language.values())
+            menu.addOption(t(actor, "Admin.Broadcast.Language." + language.name()), language.name());
+        return Label.of(t(actor, "Admin.Broadcast.Modal.Language"), menu.build());
+    }
+
+    private static Language broadcastLanguage(ModalInteractionEvent event) {
+        try { return Language.valueOf(selectValue(event, "language")); }
+        catch (Exception e) { return Language.EN; }
     }
 
     private static InboxMessageRepository.DeliveryMode delivery(ModalInteractionEvent event) {
