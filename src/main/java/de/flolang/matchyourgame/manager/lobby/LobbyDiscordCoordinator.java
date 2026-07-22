@@ -36,6 +36,7 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.entities.Invite;
 import org.slf4j.Logger;
@@ -227,10 +228,30 @@ public final class LobbyDiscordCoordinator {
     }
 
     private void createVoiceInvite(LobbyObject lobby, VoiceChannel channel, List<Integer> userIds) {
+        long guildId = channel.getGuild().getIdLong();
         boolean bypass = channel.getGuild().getSelfMember().hasPermission(Permission.KICK_MEMBERS);
         createLobbyInvite(lobby, channel, bypass).queue(
                 invite -> completeVoiceInvite(lobby, channel, userIds, invite),
-                error -> failVoiceInvite(lobby, channel, userIds, error));
+                error -> {
+                    if (bypass && isUnsupportedApplicationBypass(error)) {
+                        LOGGER.debug("Guild {} does not use member applications; retrying lobby {} with a regular invite",
+                                guildId, lobby.getId());
+                        createLobbyInvite(lobby, channel, false).queue(
+                                invite -> completeVoiceInvite(lobby, channel, userIds, invite),
+                                regularError -> failVoiceInvite(lobby, channel, userIds, regularError));
+                        return;
+                    }
+                    failVoiceInvite(lobby, channel, userIds, error);
+                });
+    }
+
+    private static boolean isUnsupportedApplicationBypass(Throwable error) {
+        if (!(error instanceof ErrorResponseException response) || response.getErrorCode() != 50035) return false;
+        return response.getSchemaErrors().stream()
+                .filter(schema -> "flags".equals(schema.getLocation()))
+                .flatMap(schema -> schema.getErrors().stream())
+                .anyMatch(schemaError -> "GUILD_INVITE_CANNOT_CREATE_APPLICATION_BYPASS_INVITE"
+                        .equals(schemaError.getCode()));
     }
 
     private RestAction<Invite> createLobbyInvite(LobbyObject lobby, VoiceChannel channel, boolean bypassApplication) {
