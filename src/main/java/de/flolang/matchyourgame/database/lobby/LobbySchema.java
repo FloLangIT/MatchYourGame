@@ -203,6 +203,15 @@ final class LobbySchema {
                     "FOREIGN KEY (stat_definition_id) REFERENCES game_stat_definition(id)," +
                     "FOREIGN KEY (user_id) REFERENCES user(id)," +
                     "FOREIGN KEY (team_id) REFERENCES match_team(id))");
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS match_stat_proposal (" +
+                    "match_id BIGINT NOT NULL," +
+                    "stat_value_id BIGINT NOT NULL," +
+                    "proposed_by BIGINT NOT NULL," +
+                    "value_text TEXT NOT NULL," +
+                    "PRIMARY KEY (match_id,stat_value_id)," +
+                    "FOREIGN KEY (match_id) REFERENCES lobby_match(id)," +
+                    "FOREIGN KEY (stat_value_id) REFERENCES match_stat_value(id)," +
+                    "FOREIGN KEY (proposed_by) REFERENCES user(id))");
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS match_confirmation (" +
                     "match_id BIGINT NOT NULL," +
                     "user_id BIGINT NOT NULL," +
@@ -211,6 +220,61 @@ final class LobbySchema {
                     "responded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP," +
                     "PRIMARY KEY (match_id,user_id)," +
                     "FOREIGN KEY (match_id) REFERENCES lobby_match(id)," +
+                    "FOREIGN KEY (user_id) REFERENCES user(id))");
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS lobby_match_review (" +
+                    "lobby_id BIGINT PRIMARY KEY," +
+                    "status VARCHAR(16) NOT NULL DEFAULT 'ENTRY'," +
+                    "entry_deadline TIMESTAMP NOT NULL," +
+                    "review_requested_at TIMESTAMP NULL," +
+                    "review_deadline TIMESTAMP NULL," +
+                    "revision INT NOT NULL DEFAULT 0," +
+                    "requires_host BOOLEAN NOT NULL DEFAULT FALSE," +
+                    "entry_finished_manually BOOLEAN NOT NULL DEFAULT FALSE," +
+                    "host_message_id VARCHAR(32) NULL," +
+                    "FOREIGN KEY (lobby_id) REFERENCES lobby(id))");
+            addColumnIfMissing(conn, statement, "lobby_match_review", "entry_finished_manually",
+                    "BOOLEAN NOT NULL DEFAULT FALSE");
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS lobby_match_review_confirmation (" +
+                    "lobby_id BIGINT NOT NULL," +
+                    "user_id BIGINT NOT NULL," +
+                    "revision INT NOT NULL," +
+                    "confirmed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                    "PRIMARY KEY (lobby_id,user_id)," +
+                    "FOREIGN KEY (lobby_id) REFERENCES lobby(id)," +
+                    "FOREIGN KEY (user_id) REFERENCES user(id))");
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS lobby_match_review_message (" +
+                    "lobby_id BIGINT NOT NULL," +
+                    "user_id BIGINT NOT NULL," +
+                    "message_id VARCHAR(32) NOT NULL," +
+                    "PRIMARY KEY (lobby_id,user_id)," +
+                    "FOREIGN KEY (lobby_id) REFERENCES lobby(id)," +
+                    "FOREIGN KEY (user_id) REFERENCES user(id))");
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS match_review_state (" +
+                    "match_id BIGINT PRIMARY KEY," +
+                    "revision INT NOT NULL DEFAULT 0," +
+                    "requires_host BOOLEAN NOT NULL DEFAULT FALSE," +
+                    "FOREIGN KEY (match_id) REFERENCES lobby_match(id))");
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS match_review_confirmation (" +
+                    "match_id BIGINT NOT NULL," +
+                    "user_id BIGINT NOT NULL," +
+                    "revision INT NOT NULL," +
+                    "confirmed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                    "PRIMARY KEY (match_id,user_id)," +
+                    "FOREIGN KEY (match_id) REFERENCES lobby_match(id)," +
+                    "FOREIGN KEY (user_id) REFERENCES user(id))");
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS lobby_match_profile_notification (" +
+                    "lobby_id BIGINT NOT NULL," +
+                    "user_id BIGINT NOT NULL," +
+                    "notified_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                    "PRIMARY KEY (lobby_id,user_id)," +
+                    "FOREIGN KEY (lobby_id) REFERENCES lobby(id)," +
+                    "FOREIGN KEY (user_id) REFERENCES user(id))");
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS lobby_voice_ready_message (" +
+                    "lobby_id BIGINT NOT NULL," +
+                    "user_id BIGINT NOT NULL," +
+                    "message_id VARCHAR(32) NOT NULL," +
+                    "PRIMARY KEY (lobby_id,user_id)," +
+                    "FOREIGN KEY (lobby_id) REFERENCES lobby(id)," +
                     "FOREIGN KEY (user_id) REFERENCES user(id))");
 
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS review_assignment (" +

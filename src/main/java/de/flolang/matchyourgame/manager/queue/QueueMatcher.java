@@ -3,6 +3,8 @@ package de.flolang.matchyourgame.manager.queue;
 import de.flolang.matchyourgame.database.lobby.LobbyObject;
 import de.flolang.matchyourgame.database.lobby.QueueCandidate;
 import de.flolang.matchyourgame.database.lobby.SearchProfile;
+import de.flolang.matchyourgame.database.game.GameController;
+import de.flolang.matchyourgame.database.game.GameObject;
 import de.flolang.matchyourgame.database.game.RankCompatibilityRepository;
 
 import java.time.Duration;
@@ -54,12 +56,18 @@ public final class QueueMatcher {
     }
 
     private static boolean rankCompatible(LobbyObject lobby, SearchProfile profile) {
-        if (lobby.isRankRulesUnrestricted()) return true;
+        if (!usesRankRules(lobby)) return true;
         if ((lobby.getCustomRankMin() != null && profile.rankValue() < lobby.getCustomRankMin())
                 || (lobby.getCustomRankMax() != null && profile.rankValue() > lobby.getCustomRankMax())) return false;
         if (lobby.getRankMin() == -1 && lobby.getRankMax() == -1) return true;
         if (lobby.getRankMin() == lobby.getRankMax())
             return RankCompatibilityRepository.isCompatible(lobby.getGameID(), lobby.getRankMin(), profile.rankValue());
         return profile.rankValue() >= lobby.getRankMin() && profile.rankValue() <= lobby.getRankMax();
+    }
+
+    public static boolean usesRankRules(LobbyObject lobby) {
+        if (lobby.isRankRulesUnrestricted()) return false;
+        GameObject game = GameController.get(lobby.getGameID());
+        return game == null || game.isSkillbased();
     }
 }

@@ -24,6 +24,9 @@ import java.util.Map;
 import java.util.Set;
 
 public final class PartnerGuildService {
+    // KICK_MEMBERS is required by Discord to create invites which bypass "Apply to Join".
+    // Discord does not expose that access-mode change through a documented guild event, so
+    // partner guilds must retain the permission to keep lobby invites working after a switch.
     public static final EnumSet<Permission> REQUIRED_PERMISSIONS = EnumSet.of(
             Permission.VIEW_CHANNEL, Permission.MANAGE_CHANNEL, Permission.MANAGE_PERMISSIONS,
             Permission.CREATE_INSTANT_INVITE, Permission.KICK_MEMBERS, Permission.VIEW_AUDIT_LOGS);
@@ -33,7 +36,7 @@ public final class PartnerGuildService {
     public static void checkEligibility(long guildId) {
         if (Main.jda == null || guildId <= 0) return;
         GuildObject configured = GuildRepository.get(guildId);
-        if (configured == null || configured.isPartnerGuild()) return;
+        if (configured == null || !configured.isActive() || configured.isPartnerGuild()) return;
         int threshold = ConfigManager.getInt("PartnerGuildUserCreations",
                 ConfigManager.getInt("CreatedUserToBecomePartnerGuild", 30));
         if (GuildRepository.stats(guildId, configured.getManagerUserId()).accountCount() < threshold) return;

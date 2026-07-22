@@ -330,6 +330,19 @@ public final class LobbyRepository {
         return ids;
     }
 
+    public static List<Integer> allMemberIds(int lobbyId) {
+        List<Integer> ids = new ArrayList<>();
+        try (Connection conn = Database.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "SELECT user_id FROM lobby_member WHERE lobby_id=? ORDER BY joined_at,user_id")) {
+            ps.setInt(1, lobbyId);
+            try (ResultSet rs = ps.executeQuery()) { while (rs.next()) ids.add(rs.getInt(1)); }
+        } catch (SQLException e) {
+            LOGGER.error("Could not list historical lobby members", e);
+        }
+        return ids;
+    }
+
     public static void configureQueues(int lobbyId, boolean passive, boolean clan) {
         update("UPDATE lobby SET passive_queue=?,clan_queue=? WHERE id=?", ps -> {
             ps.setBoolean(1, passive); ps.setBoolean(2, clan); ps.setInt(3, lobbyId);
@@ -360,7 +373,7 @@ public final class LobbyRepository {
                 "UPDATE lobby SET max_players=?,custom_rank_min=?,custom_rank_max=?,rank_rules_unrestricted=?," +
                         "rank_min=CASE WHEN ?=FALSE AND rank_min=-1 THEN 0 ELSE rank_min END," +
                         "rank_max=CASE WHEN ?=FALSE AND rank_max=-1 THEN 2147483647 ELSE rank_max END " +
-                        "WHERE id=? AND status='OPEN'")) {
+                        "WHERE id=? AND status IN ('OPEN','FORMING','READY','ACTIVE')")) {
             ps.setInt(1, capacity);
             if (customRankMin == null) ps.setNull(2, Types.INTEGER); else ps.setInt(2, customRankMin);
             if (customRankMax == null) ps.setNull(3, Types.INTEGER); else ps.setInt(3, customRankMax);
@@ -415,6 +428,34 @@ public final class LobbyRepository {
         update("UPDATE lobby_member SET voice_joined_at=CURRENT_TIMESTAMP,voice_rejoin_deadline=NULL,voice_extension_used=FALSE " +
                         "WHERE lobby_id=? AND user_id=? AND left_at IS NULL",
                 ps -> { ps.setInt(1, lobbyId); ps.setInt(2, userId); });
+    }
+
+    public static void storeVoiceReadyMessage(int lobbyId, int userId, String messageId) {
+        update("INSERT INTO lobby_voice_ready_message (lobby_id,user_id,message_id) VALUES (?,?,?) " +
+                "ON DUPLICATE KEY UPDATE message_id=VALUES(message_id)", ps -> {
+            ps.setInt(1, lobbyId); ps.setInt(2, userId); ps.setString(3, messageId);
+        });
+    }
+
+    public static String takeVoiceReadyMessage(int lobbyId, int userId) {
+        try (Connection conn = Database.getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement select = conn.prepareStatement(
+                    "SELECT message_id FROM lobby_voice_ready_message WHERE lobby_id=? AND user_id=? FOR UPDATE");
+                 PreparedStatement delete = conn.prepareStatement(
+                         "DELETE FROM lobby_voice_ready_message WHERE lobby_id=? AND user_id=?")) {
+                select.setInt(1, lobbyId); select.setInt(2, userId);
+                String messageId;
+                try (ResultSet rs = select.executeQuery()) { messageId = rs.next() ? rs.getString(1) : null; }
+                delete.setInt(1, lobbyId); delete.setInt(2, userId); delete.executeUpdate();
+                conn.commit();
+                return messageId;
+            } catch (SQLException e) { conn.rollback(); throw e; }
+            finally { conn.setAutoCommit(true); }
+        } catch (SQLException e) {
+            LOGGER.error("Could not take voice-ready message for lobby {} user {}", lobbyId, userId, e);
+            return null;
+        }
     }
 
     public static void markVoiceLeft(int lobbyId, int userId) {
@@ -527,6 +568,21 @@ public final class LobbyRepository {
                 ps -> ps.setInt(1, lobbyId));
         update("UPDATE lobby_member SET voice_joined_at=NULL,voice_rejoin_deadline=NULL,voice_extension_used=FALSE " +
                 "WHERE lobby_id=? AND left_at IS NULL", ps -> ps.setInt(1, lobbyId));
+    }
+
+    public static void reopenPreservingVoiceChannel(int lobbyId) {
+        update("UPDATE lobby SET status='OPEN',voice_invite_url=NULL,voice_reminder_sent_at=NULL," +
+                        "passive_queue=FALSE,clan_queue=FALSE,last_invite_wave_at=NULL WHERE id=?",
+                ps -> ps.setInt(1, lobbyId));
+    }
+
+    public static void beginExistingVoiceFormation(int lobbyId) {
+        update("UPDATE lobby SET status='FORMING',voice_created_at=CURRENT_TIMESTAMP," +
+                        "voice_invite_url=NULL,voice_reminder_sent_at=NULL WHERE id=?",
+                ps -> ps.setInt(1, lobbyId));
+        update("UPDATE lobby_invitation SET status='CANCELLED',responded_at=CURRENT_TIMESTAMP " +
+                        "WHERE lobby_id=? AND status='PENDING'",
+                ps -> ps.setInt(1, lobbyId));
     }
 
     public static void markActive(int lobbyId) {

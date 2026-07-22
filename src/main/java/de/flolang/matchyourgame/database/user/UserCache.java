@@ -41,4 +41,10 @@ public class UserCache {
     public static void evictById(int userId) {
         evict(BY_ID.get(userId));
     }
+
+    public static void clear() {
+        BY_ID.clear();
+        BY_USERNAME.clear();
+        BY_DISCORD_ID.clear();
+    }
 }

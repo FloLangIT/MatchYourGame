@@ -18,6 +18,7 @@ import de.flolang.matchyourgame.manager.party.PartyService;
 import de.flolang.matchyourgame.manager.lobby.GameSelectionWizard;
 import de.flolang.matchyourgame.manager.lobby.LobbyCapacityRules;
 import de.flolang.matchyourgame.manager.lobby.LobbyService;
+import de.flolang.matchyourgame.manager.lobby.GameMessageVisibility;
 import de.flolang.matchyourgame.logging.DiscordLogService;
 import de.flolang.matchyourgame.database.review.ReviewAssignment;
 import de.flolang.matchyourgame.database.review.ReviewRepository;
@@ -161,7 +162,16 @@ public final class LobbyInteractionListener extends ListenerAdapter {
                         if (dissolved) event.getMessage().delete().queue();
                     });
         } else if (id.startsWith("lobbyFindMerge-")) {
-            showMergeCandidates(event, suffix(id), user);
+            int sourceLobbyId = suffix(id);
+            LobbyObject target = Main.lobbyService.findBestMergeCandidate(sourceLobbyId, user.getId());
+            int targetLobbyId = target == null ? 0 : target.getId();
+            LobbyService.LobbyMergeResult result = target == null ? LobbyService.LobbyMergeResult.UNAVAILABLE
+                    : Main.lobbyService.mergeLobbies(sourceLobbyId, targetLobbyId, user.getId());
+            event.reply(t(user.getId(), "Lobby.Merge.Result." + result.name(), Map.of(
+                            "%targetLobby%", String.valueOf(targetLobbyId))))
+                    .setEphemeral(true).queue(ignored -> {
+                        if (result == LobbyService.LobbyMergeResult.MERGED) event.getMessage().delete().queue();
+                    });
         } else if (id.startsWith("lobbyJoin-")) {
             int lobbyId = suffix(id);
             replyJoin(event, Main.lobbyService.joinBrowse(lobbyId, user.getId()), lobbyId, user.getId());
@@ -187,10 +197,10 @@ public final class LobbyInteractionListener extends ListenerAdapter {
                 event.reply(t(user.getId(), "Lobby.OnlyHostClose")).setEphemeral(true).queue();
             } else {
                 Main.reviewService.assignAfterLobby(lobbyId);
-                event.reply(t(user.getId(), "Lobby.Closed"))
-                        .setComponents(ActionRow.of(Button.primary("matchAdd-" + lobbyId, t(user.getId(), "Match.Button.Add")),
-                                Button.success("matchDone-" + lobbyId, t(user.getId(), "Match.Button.Done"))))
-                        .setEphemeral(true).queue();
+                event.replyEmbeds(Main.matchService.closureSummary(lobbyId, user.getId()))
+                        .setComponents(Main.matchService.hostEntryComponents(lobbyId, user.getId()))
+                        .queue(hook -> hook.retrieveOriginal().queue(message ->
+                                Main.matchService.storeHostEntryMessage(lobbyId, message.getId())));
             }
         } else if (id.startsWith("reviewOpen-")) {
             int assignmentId = suffix(id);
@@ -205,19 +215,32 @@ public final class LobbyInteractionListener extends ListenerAdapter {
                         Label.of(t(user.getId(), "Review.Modal.Feedback"), TextInput.create("feedback", TextInputStyle.PARAGRAPH)
                                 .setRequired(false).setMaxLength(1500).build())).build()).queue();
             }
+        } else if (id.startsWith("matchBackToLobby-")) {
+            int lobbyId = suffix(id);
+            event.deferEdit().queue();
+            new UserControlManager(event.getMessage(), user).loadLobbyPage(LobbyRepository.get(lobbyId));
+        } else if (id.startsWith("matchEntryOverview-")) {
+            int lobbyId = suffix(id);
+            LobbyObject lobby = LobbyRepository.get(lobbyId);
+            if (!canManageActiveMatches(lobby, user.getId())) {
+                event.reply(t(user.getId(), "Match.CreateFailed")).setEphemeral(true).queue();
+            } else event.editMessageEmbeds(Main.matchService.activeEntryEmbed(lobbyId, user.getId(), ""))
+                    .setContent(null).setComponents(Main.matchService.activeEntryComponents(lobbyId, user.getId())).queue();
         } else if (id.startsWith("matchAdd-")) {
             int lobbyId = suffix(id);
             MatchService.EntrySession session = Main.matchService.start(lobbyId, user.getId());
+            LobbyObject matchLobby = LobbyRepository.get(lobbyId);
+            boolean closedEntry = matchLobby != null && matchLobby.getStatus() == LobbyStatus.CLOSED;
             if (session == null) {
                 event.reply(t(user.getId(), "Match.CreateFailed")).setEphemeral(true).queue();
-            } else if (session.complete()) {
-                event.reply(t(user.getId(), "Match.Submitted"))
-                        .setComponents(matchContinueControls(lobbyId, user.getId())).setEphemeral(true).queue();
             } else {
-                event.reply(t(user.getId(), "Match.Created"))
-                        .setComponents(ActionRow.of(Button.primary("matchNext-" + session.matchId(),
-                                t(user.getId(), "Match.Button.EnterStats"))))
-                        .setEphemeral(true).queue();
+                if (closedEntry) event.editMessageEmbeds(Main.matchService.closureSummary(lobbyId, user.getId()),
+                                Main.matchService.participantSelectionEmbed(user.getId()))
+                        .setContent(null).setComponents(Main.matchService.participantSelectionComponents(
+                                session, user.getId(), false)).queue();
+                else event.editMessageEmbeds(Main.matchService.activeEntryEmbed(lobbyId, user.getId(),
+                                t(user.getId(), "Match.Participants.Description"))).setContent(null)
+                        .setComponents(Main.matchService.participantSelectionComponents(session, user.getId(), true)).queue();
             }
         } else if (id.startsWith("matchNext-")) {
             int matchId = suffix(id);
@@ -236,16 +259,20 @@ public final class LobbyInteractionListener extends ListenerAdapter {
                 }
                 event.replyModal(modal.build()).queue();
             }
-        } else if (id.startsWith("matchConfirm-")) {
-            Main.matchService.confirm(suffix(id), user.getId(), true);
-            event.editMessage(t(user.getId(), "Match.Confirmed")).setComponents()
-                    .queue(hook -> hook.deleteOriginal().queueAfter(5, TimeUnit.SECONDS));
-        } else if (id.startsWith("matchReject-")) {
-            Main.matchService.confirm(suffix(id), user.getId(), false);
-            event.editMessage(t(user.getId(), "Match.Disputed")).setComponents()
-                    .queue(hook -> hook.deleteOriginal().queueAfter(5, TimeUnit.SECONDS));
+        } else if (id.startsWith("matchBatchApprove-")) {
+            int lobbyId = suffix(id);
+            if (Main.matchService.confirmLobby(lobbyId, user.getId())) event.deferEdit().queue();
+            else event.reply(t(user.getId(), "Match.Confirmation.Unavailable")).setEphemeral(true).queue();
+        } else if (id.startsWith("matchCorrectionNext-")) {
+            int matchId = suffix(id);
+            if (Main.matchService.getCorrection(matchId, user.getId()) == null)
+                event.reply(t(user.getId(), "Match.SessionUnavailable")).setEphemeral(true).queue();
+            else event.replyModal(correctionModal(matchId, user.getId())).queue();
         } else if (id.startsWith("matchDone-")) {
-            event.reply(t(user.getId(), "Match.AllEntered")).setEphemeral(true).queue();
+            int lobbyId = suffix(id);
+            if (!Main.matchService.finishLobbyEntry(lobbyId, user.getId()))
+                event.reply(t(user.getId(), "Match.Entry.Unavailable")).setEphemeral(true).queue();
+            else event.deferEdit().queue(hook -> hook.deleteOriginal().queue());
         }
     }
 
@@ -254,6 +281,56 @@ public final class LobbyInteractionListener extends ListenerAdapter {
         if (event.getValues().isEmpty()) return;
         UserObject user = UserController.get(event.getUser().getIdLong());
         if (user == null) return;
+        if (event.getComponentId().startsWith("matchBatchEdit-")) {
+            int matchId;
+            try { matchId = Integer.parseInt(event.getValues().getFirst()); }
+            catch (NumberFormatException exception) { return; }
+            MatchService.CorrectionSession correction = Main.matchService.startCorrection(matchId, user.getId());
+            if (correction == null) event.reply(t(user.getId(), "Match.Confirmation.Unavailable")).setEphemeral(true).queue();
+            else event.replyModal(correctionModal(matchId, user.getId())).queue();
+            return;
+        }
+        if (event.getComponentId().startsWith("matchPlayers-")) {
+            int matchId = suffix(event.getComponentId());
+            MatchService.EntrySession session = Main.matchService.getSession(matchId, user.getId());
+            List<Integer> selected;
+            try { selected = event.getValues().stream().map(Integer::parseInt).toList(); }
+            catch (NumberFormatException exception) { return; }
+            if (session == null || !Main.matchService.selectParticipants(matchId, user.getId(), selected)) {
+                event.reply(t(user.getId(), "Match.SessionUnavailable")).setEphemeral(true).queue();
+                return;
+            }
+            LobbyObject lobby = LobbyRepository.get(session.lobbyId());
+            boolean closedEntry = lobby != null && lobby.getStatus() == LobbyStatus.CLOSED;
+            if (session.complete()) {
+                if (closedEntry) event.editMessageEmbeds(Main.matchService.closureSummary(session.lobbyId(), user.getId()))
+                        .setContent(null).setComponents(Main.matchService.hostEntryComponents(session.lobbyId(), user.getId())).queue();
+                else event.editMessageEmbeds(Main.matchService.activeEntryEmbed(session.lobbyId(), user.getId(),
+                                t(user.getId(), "Match.Submitted"))).setContent(null)
+                        .setComponents(Main.matchService.activeEntryComponents(session.lobbyId(), user.getId())).queue();
+            } else if (closedEntry) event.editMessageEmbeds(Main.matchService.closureSummary(session.lobbyId(), user.getId()),
+                            Main.matchService.entryProgressEmbed(user.getId(), t(user.getId(), "Match.Participants.Saved")))
+                    .setContent(null).setComponents(ActionRow.of(Button.primary("matchNext-" + matchId,
+                            t(user.getId(), "Match.Button.EnterStats")))).queue();
+            else event.editMessageEmbeds(Main.matchService.activeEntryEmbed(session.lobbyId(), user.getId(),
+                            t(user.getId(), "Match.Participants.Saved"))).setContent(null)
+                    .setComponents(Main.matchService.activeEntryComponents(session.lobbyId(), user.getId(), matchId,
+                            t(user.getId(), "Match.Button.EnterStats"))).queue();
+            return;
+        }
+        if (event.getComponentId().startsWith("matchPlayerStats-")) {
+            int lobbyId = suffix(event.getComponentId());
+            int matchId;
+            try { matchId = Integer.parseInt(event.getValues().getFirst()); }
+            catch (NumberFormatException exception) { return; }
+            LobbyObject lobby = LobbyRepository.get(lobbyId);
+            var embed = Main.matchService.playerStatsEmbed(lobbyId, matchId, user.getId());
+            if (!canManageActiveMatches(lobby, user.getId()) || embed == null)
+                event.reply(t(user.getId(), "Match.SessionUnavailable")).setEphemeral(true).queue();
+            else event.editMessageEmbeds(embed).setContent(null)
+                    .setComponents(Main.matchService.playerStatsComponents(lobbyId, user.getId())).queue();
+            return;
+        }
         if (event.getComponentId().startsWith("gameProfileSelect-")) {
             String[] value = event.getValues().getFirst().split("\\|", 2);
             if (value.length != 2) return;
@@ -265,7 +342,11 @@ public final class LobbyInteractionListener extends ListenerAdapter {
             int targetLobbyId = Integer.parseInt(event.getValues().getFirst());
             LobbyService.LobbyMergeResult result = Main.lobbyService.mergeLobbies(
                     sourceLobbyId, targetLobbyId, user.getId());
-            event.reply(t(user.getId(), "Lobby.Merge.Result." + result.name(), Map.of(
+            LobbyObject sourceLobby = LobbyRepository.get(sourceLobbyId);
+            String resultKey = result == LobbyService.LobbyMergeResult.INCOMPATIBLE
+                    && sourceLobby != null && !GameMessageVisibility.showsRanks(sourceLobby.getGameID())
+                    ? "INCOMPATIBLE_NO_RANK" : result.name();
+            event.reply(t(user.getId(), "Lobby.Merge.Result." + resultKey, Map.of(
                             "%targetLobby%", String.valueOf(targetLobbyId))))
                     .setEphemeral(true).queue(ignored -> {
                         if (result == LobbyService.LobbyMergeResult.MERGED) event.getMessage().delete().queue();
@@ -303,8 +384,14 @@ public final class LobbyInteractionListener extends ListenerAdapter {
                             .setEphemeral(true).queue();
                 }
             } else if (id.startsWith("lobbyInviteFriend-")) {
-                LobbyInvitation invitation = Main.lobbyService.inviteFriend(user.getId(), suffix(id), value(event, "username"));
-                event.reply(t(user.getId(), invitation == null ? "Lobby.InviteFriend.Failed" : "Lobby.InviteFriend.Success"))
+                int lobbyId = suffix(id);
+                LobbyService.FriendInviteResult result = Main.lobbyService.inviteFriend(
+                        user.getId(), lobbyId, value(event, "username"));
+                LobbyObject lobby = LobbyRepository.get(lobbyId);
+                String statusKey = result.status() == LobbyService.FriendInviteStatus.PROFILE_MISMATCH
+                        && lobby != null && !GameMessageVisibility.showsRoles(lobby.getGameID())
+                        ? "PROFILE_MISMATCH_NO_ROLE" : result.status().name();
+                event.reply(t(user.getId(), "Lobby.InviteFriend." + statusKey))
                         .setEphemeral(true).queue();
             } else if (id.startsWith("lobbyInviteClan-")) {
                 int count = Main.lobbyService.inviteClan(user.getId(), suffix(id), integer(event, "clan"));
@@ -328,16 +415,45 @@ public final class LobbyInteractionListener extends ListenerAdapter {
                     List<String> values = new java.util.ArrayList<>();
                     for (int i = 0; i < batch.size(); i++) values.add(value(event, "v" + i));
                     boolean saved = Main.matchService.submitBatch(matchId, user.getId(), values);
+                    LobbyObject matchLobby = LobbyRepository.get(session.lobbyId());
+                    boolean closedEntry = matchLobby != null && matchLobby.getStatus() == LobbyStatus.CLOSED;
                     if (!saved) {
                         event.reply(t(user.getId(), "Match.InvalidStat")).setEphemeral(true).queue();
                     } else if (session.complete()) {
-                        event.reply(t(user.getId(), "Match.Submitted"))
-                                .setComponents(matchContinueControls(session.lobbyId(), user.getId())).setEphemeral(true).queue();
+                        if (closedEntry) event.editMessageEmbeds(Main.matchService.closureSummary(
+                                        session.lobbyId(), user.getId())).setContent(null)
+                                .setComponents(Main.matchService.hostEntryComponents(session.lobbyId(), user.getId())).queue();
+                        else event.editMessageEmbeds(Main.matchService.activeEntryEmbed(session.lobbyId(), user.getId(),
+                                        t(user.getId(), "Match.Submitted"))).setContent(null)
+                                .setComponents(Main.matchService.activeEntryComponents(session.lobbyId(), user.getId())).queue();
                     } else {
-                        event.reply(t(user.getId(), "Match.StatsSaved"))
-                                .setComponents(ActionRow.of(Button.primary("matchNext-" + matchId, t(user.getId(), "Match.Button.NextStats"))))
-                                .setEphemeral(true).queue();
+                        if (closedEntry) event.editMessageEmbeds(Main.matchService.closureSummary(
+                                        session.lobbyId(), user.getId()), Main.matchService.entryProgressEmbed(
+                                        user.getId(), t(user.getId(), "Match.StatsSaved"))).setContent(null)
+                                .setComponents(ActionRow.of(Button.primary("matchNext-" + matchId,
+                                        t(user.getId(), "Match.Button.NextStats")))).queue();
+                        else event.editMessageEmbeds(Main.matchService.activeEntryEmbed(session.lobbyId(), user.getId(),
+                                        t(user.getId(), "Match.StatsSaved"))).setContent(null)
+                                .setComponents(Main.matchService.activeEntryComponents(session.lobbyId(), user.getId(), matchId,
+                                        t(user.getId(), "Match.Button.NextStats"))).queue();
                     }
+                }
+            } else if (id.startsWith("matchCorrectionStats-")) {
+                int matchId = suffix(id);
+                MatchService.CorrectionSession session = Main.matchService.getCorrection(matchId, user.getId());
+                if (session == null) {
+                    event.reply(t(user.getId(), "Match.SessionUnavailable")).setEphemeral(true).queue();
+                } else {
+                    List<MatchService.CorrectionTask> batch = Main.matchService.nextCorrectionBatch(matchId, user.getId());
+                    List<String> values = new java.util.ArrayList<>();
+                    for (int i = 0; i < batch.size(); i++) values.add(value(event, "v" + i));
+                    boolean saved = Main.matchService.submitCorrectionBatch(matchId, user.getId(), values);
+                    if (!saved) event.reply(t(user.getId(), "Match.InvalidStat")).setEphemeral(true).queue();
+                    else if (session.complete()) event.reply(t(user.getId(), "Match.Correction.Submitted"))
+                            .setEphemeral(true).queue();
+                    else event.reply(t(user.getId(), "Match.Correction.Saved"))
+                            .setComponents(ActionRow.of(Button.primary("matchCorrectionNext-" + matchId,
+                                    t(user.getId(), "Match.Correction.Next")))).setEphemeral(true).queue();
                 }
             }
         } catch (IllegalArgumentException exception) {
@@ -374,7 +490,7 @@ public final class LobbyInteractionListener extends ListenerAdapter {
 
     private void showLobbySettingsModal(ButtonInteractionEvent event, int lobbyId, UserObject user) {
         LobbyObject lobby = LobbyRepository.get(lobbyId);
-        if (lobby == null || lobby.getLeaderID() != user.getId() || !lobby.isOpen()) {
+        if (lobby == null || lobby.getLeaderID() != user.getId() || !Main.lobbyService.canEditFullLobby(lobby)) {
             event.reply(t(user.getId(), "Lobby.Settings.Result.UNAVAILABLE")).setEphemeral(true).queue();
             return;
         }
@@ -383,7 +499,8 @@ public final class LobbyInteractionListener extends ListenerAdapter {
         modal.addComponents(Label.of(t(user.getId(), "Lobby.Settings.Modal.Capacity"),
                 TextInput.create("capacity", TextInputStyle.SHORT)
                         .setValue(String.valueOf(lobby.getMaxPlayers())).setRequired(true).setMaxLength(2).build()));
-        List<GameOption> allowed = Main.lobbyService.compatibleRanksForCurrentMembers(lobby);
+        List<GameOption> allowed = GameMessageVisibility.showsRanks(lobby.getGameID())
+                ? Main.lobbyService.compatibleRanksForCurrentMembers(lobby) : List.of();
         if (!allowed.isEmpty()) {
             String allowedLabel = allowed.getFirst().name() + " – " + allowed.getLast().name();
             modal.addComponents(Label.of(trim(t(user.getId(), "Lobby.Settings.Modal.Minimum"), 45),
@@ -396,7 +513,7 @@ public final class LobbyInteractionListener extends ListenerAdapter {
 
     private void submitLobbySettings(ModalInteractionEvent event, int lobbyId, UserObject user) {
         LobbyObject lobby = LobbyRepository.get(lobbyId);
-        if (lobby == null || lobby.getLeaderID() != user.getId() || !lobby.isOpen()) {
+        if (lobby == null || lobby.getLeaderID() != user.getId() || !Main.lobbyService.canEditFullLobby(lobby)) {
             event.reply(t(user.getId(), "Lobby.Settings.Result.UNAVAILABLE")).setEphemeral(true).queue();
             return;
         }
@@ -411,8 +528,10 @@ public final class LobbyInteractionListener extends ListenerAdapter {
                     Map.of("%rank%", exception.getMessage()))).setEphemeral(true).queue();
             return;
         }
-        Integer unrestrictedSize = RankCompatibilityRepository.getUnrestrictedPartySize(lobby.getGameID());
-        if (LobbyCapacityRules.offersUnrestrictedRankChoice(capacity, unrestrictedSize)
+        Integer unrestrictedSize = GameMessageVisibility.showsRanks(lobby.getGameID())
+                ? RankCompatibilityRepository.getUnrestrictedPartySize(lobby.getGameID()) : null;
+        if (GameMessageVisibility.showsRanks(lobby.getGameID())
+                && LobbyCapacityRules.offersUnrestrictedRankChoice(capacity, unrestrictedSize)
                 && !GameOptionRepository.get(lobby.getGameID(), GameOption.Type.RANK).isEmpty()) {
             String token = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
             pendingLobbySettings.put(token, new PendingLobbySettings(user.getId(), lobbyId, capacity,
@@ -468,6 +587,9 @@ public final class LobbyInteractionListener extends ListenerAdapter {
 
     private static String settingsResultMessage(int userId, LobbyService.LobbySettingsUpdate result) {
         if (result.status() == LobbyService.LobbySettingsStatus.UPDATED && result.lobby() != null) {
+            if (!GameMessageVisibility.showsRanks(result.lobby().getGameID()))
+                return t(userId, "Lobby.Settings.Result.UPDATED_NO_RANK", Map.of(
+                        "%capacity%", String.valueOf(result.lobby().getMaxPlayers())));
             String ranks;
             if (result.lobby().isRankRulesUnrestricted()) ranks = t(userId, "Lobby.View.AnyRank");
             else {
@@ -507,7 +629,10 @@ public final class LobbyInteractionListener extends ListenerAdapter {
     private static void showMergeCandidates(ButtonInteractionEvent event, int sourceLobbyId, UserObject user) {
         List<LobbyObject> candidates = Main.lobbyService.findMergeCandidates(sourceLobbyId, user.getId());
         if (candidates.isEmpty()) {
-            event.reply(t(user.getId(), "Lobby.Merge.None")).setEphemeral(true).queue();
+            LobbyObject source = LobbyRepository.get(sourceLobbyId);
+            String key = source != null && !GameMessageVisibility.showsRanks(source.getGameID())
+                    ? "Lobby.Merge.NoneNoRank" : "Lobby.Merge.None";
+            event.reply(t(user.getId(), key)).setEphemeral(true).queue();
             return;
         }
         List<SelectOption> options = candidates.stream().limit(25).map(candidate -> {
@@ -585,6 +710,26 @@ public final class LobbyInteractionListener extends ListenerAdapter {
                 Button.success("matchDone-" + lobbyId, t(userId, "Match.Button.Done")));
     }
 
+    private static boolean canManageActiveMatches(LobbyObject lobby, int userId) {
+        return lobby != null && lobby.getLeaderID() == userId
+                && List.of(LobbyStatus.FORMING, LobbyStatus.READY, LobbyStatus.ACTIVE).contains(lobby.getStatus());
+    }
+
+    private static Modal correctionModal(int matchId, int userId) {
+        List<MatchService.CorrectionTask> tasks = Main.matchService.nextCorrectionBatch(matchId, userId);
+        Modal.Builder modal = Modal.create("matchCorrectionStats-" + matchId,
+                t(userId, "Match.Correction.Title"));
+        for (int i = 0; i < tasks.size(); i++) {
+            MatchService.CorrectionTask task = tasks.get(i);
+            String label = task.label().length() > 45 ? task.label().substring(0, 45) : task.label();
+            TextInputStyle style = "TEXT".equals(task.value().valueType())
+                    ? TextInputStyle.PARAGRAPH : TextInputStyle.SHORT;
+            modal.addComponents(Label.of(label, TextInput.create("v" + i, style)
+                    .setValue(task.value().value()).setRequired(true).setMaxLength(1500).build()));
+        }
+        return modal.build();
+    }
+
     private static void replyJoin(ButtonInteractionEvent event, LobbyJoinResult result, int lobbyId, int userId) {
         var reply = event.reply(t(userId, "Lobby.JoinResult." + result.name())).setEphemeral(true);
         if (result == LobbyJoinResult.LANGUAGE_MISMATCH && lobbyId > 0) {
@@ -601,7 +746,9 @@ public final class LobbyInteractionListener extends ListenerAdapter {
     private static net.dv8tion.jda.api.entities.MessageEmbed browseEmbed(List<LobbyObject> lobbies, int page, int userId) {
         int from = Math.min(page * 5, lobbies.size());
         int to = Math.min(from + 5, lobbies.size());
-        String lines = lobbies.subList(from, to).stream().map(lobby -> t(userId, "Lobby.Browse.Entry", Map.of(
+        String lines = lobbies.subList(from, to).stream().map(lobby -> t(userId,
+                GameMessageVisibility.showsRanks(lobby.getGameID())
+                        ? "Lobby.Browse.Entry" : "Lobby.Browse.EntryNoRank", Map.of(
                 "%lobbyId%", String.valueOf(lobby.getId()), "%players%", String.valueOf(LobbyRepository.memberCount(lobby.getId())),
                 "%capacity%", String.valueOf(lobby.getMaxPlayers()), "%rankMin%", String.valueOf(lobby.getRankMin()),
                 "%rankMax%", String.valueOf(lobby.getRankMax())))).reduce((a, b) -> a + "\n" + b).orElse("-");

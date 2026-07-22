@@ -7,11 +7,13 @@ import de.flolang.matchyourgame.database.guild.GuildObject;
 import de.flolang.matchyourgame.database.user.UserController;
 import de.flolang.matchyourgame.database.user.UserObject;
 import de.flolang.matchyourgame.database.user.UserRepository;
+import de.flolang.matchyourgame.database.user.InboxMessageRepository;
 import de.flolang.matchyourgame.database.report.BanRepository;
 import de.flolang.matchyourgame.embed.EmbedCreator;
 import de.flolang.matchyourgame.language.Language;
 import de.flolang.matchyourgame.language.LanguageManager;
 import de.flolang.matchyourgame.manager.UserControlManager;
+import de.flolang.matchyourgame.manager.InboxService;
 import de.flolang.matchyourgame.manager.TutorialManager;
 import de.flolang.matchyourgame.logging.DiscordLogService;
 import de.flolang.matchyourgame.manager.PartnerGuildService;
@@ -116,6 +118,11 @@ public class CreateUserListener extends ListenerAdapter {
             if (createdUser != null && createdUser.getCreateGuild() > 0)
                 PartnerGuildService.checkEligibility(createdUser.getCreateGuild());
             event.replyEmbeds(LanguageManager.getEmbedForUser("CreateUser.AccountCreated", createdUser.getId(), new HashMap<>()).build()).setEphemeral(true).queue();
+
+            InboxService.sendToUser(createdUser, createdUser,
+                    LanguageManager.getMessageForUser("Inbox.Welcome.Title", createdUser.getId()),
+                    LanguageManager.getMessageForUser("Inbox.Welcome.Description", createdUser.getId()),
+                    InboxMessageRepository.DeliveryMode.SILENT);
 
             //Send user private control panel
             privateChannel.sendMessageEmbeds(new EmbedCreator().setTitle("Loading...").build()).queue(message -> {

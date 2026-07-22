@@ -188,12 +188,16 @@ UserProfile:
       Description: "**%inviter%** invited you to the crew **%clan%**."
       Accept: "Accept"
       Decline: "Decline"
+      Ignore: "Ignore"
       Accepted: "You joined the crew."
       Declined: "You declined the crew invitation."
       Unavailable: "This crew invitation is no longer available."
     MemberJoined:
       Title: "New crew member"
       Description: "**%user%** joined the crew **%clan%**."
+    MemberLeft:
+      Title: "Crew member left"
+      Description: "**%user%** left the crew **%clan%**."
     Rename:
       Title: "Rename crew"
       Failed: "The crew could not be renamed. The name may already be taken."
@@ -300,6 +304,7 @@ Lobby:
   View:
     Title: "Lobby #%lobbyId%"
     Description: "Game: %game%\nPlayers: %players%/%capacity%\nPlatform: %platform%\nRegion: %region%\nCommunication languages: %languages%\nAllowed ranks: %ranks%\nVoice channel: %voiceInvite%\n\n**Players in this lobby**\n%playerList%"
+    DescriptionNoRank: "Game: %game%\nPlayers: %players%/%capacity%\nPlatform: %platform%\nRegion: %region%\nCommunication languages: %languages%\nVoice channel: %voiceInvite%\n\n**Players in this lobby**\n%playerList%"
     AnyRank: "All ranks"
     AnyLanguage: "Any"
     JoinVoice: "Join voice channel"
@@ -317,6 +322,7 @@ Lobby:
     UnknownRank: "Rank **%rank%** was not found for this game. Use its exact rank name."
     Result:
       UPDATED: "Lobby updated: **%capacity% players**, allowed ranks **%ranks%**."
+      UPDATED_NO_RANK: "Lobby updated: **%capacity% players**."
       UNAVAILABLE: "The lobby settings are no longer available or you are not the host."
       INVALID_CAPACITY: "The player count must be between 2 and 99."
       CAPACITY_BELOW_MEMBERS: "The player count cannot be lower than the current **%members% members**."
@@ -330,8 +336,10 @@ Lobby:
     Exhausted:
       Title: "No more players in Passive Queue"
       Description: "There are no more matching players available in Passive Queue. The lobby currently has **%players% players**. You can start with the current player count or dissolve the lobby."
+      DescriptionWithLobby: "There are no more matching players available in Passive Queue. Your lobby currently has **%players% players**. Alternatively, everyone can immediately join this suitable PassiveQ lobby:\n\nGame: %game%\nPlayers: %playerCount%/%capacity%\nPlatform: %platform%\nRegion: %region%\nCommunication languages: %languages%\nAllowed ranks: %ranks%\n\n**Players in the lobby**\n%playerList%"
+      DescriptionWithLobbyNoRank: "There are no more matching players available in Passive Queue. Your lobby currently has **%players% players**. Alternatively, everyone can immediately join this suitable PassiveQ lobby:\n\nGame: %game%\nPlayers: %playerCount%/%capacity%\nPlatform: %platform%\nRegion: %region%\nCommunication languages: %languages%\n\n**Players in the lobby**\n%playerList%"
     StartCurrent: "Start with current players"
-    FindMerge: "Find compatible lobby"
+    FindMerge: "Join another PassiveQ lobby"
     Dissolve: "Dissolve lobby"
     StartedCurrent: "The lobby is starting with its current player count."
     Dissolved: "The lobby was dissolved."
@@ -343,11 +351,13 @@ Lobby:
     OptionLabel: "Lobby #%lobbyId% · %host%"
     OptionDescription: "%players%/%capacity% players · %platform% · %region%"
     None: "No open PassiveQ lobby currently has enough space while matching every profile, language, and rank rule."
+    NoneNoRank: "No open PassiveQ lobby currently has enough space while matching every profile and language rule."
     Result:
       MERGED: "Your lobby was successfully merged into lobby **#%targetLobby%**."
       UNAVAILABLE: "One of the lobbies is no longer available or the target lobby is no longer searching through PassiveQ."
       NOT_ENOUGH_SPACE: "The target lobby no longer has enough space for every player."
       INCOMPATIBLE: "The lobbies are no longer compatible due to their profiles, languages, or rank rules."
+      INCOMPATIBLE_NO_RANK: "The lobbies are no longer compatible due to their profiles or languages."
   Clan:
     UseInviteButton: "Use “Invite crew” to invite crew members."
   Browse:
@@ -355,12 +365,17 @@ Lobby:
     Title: "Matching lobbies · %page%/%pages%"
     Join: "Join lobby #%lobbyId%"
     Entry: "#%lobbyId% · %players%/%capacity% · ranks %rankMin%–%rankMax%"
+    EntryNoRank: "#%lobbyId% · %players%/%capacity% players"
     Modal:
       Title: "Find matching lobbies"
       Game: "Game ID"
   InviteFriend:
-    Success: "Friend invited."
-    Failed: "Invitation failed. Direct invitations require an accepted friendship."
+    INVITED: "Friend invited."
+    FRIENDSHIP_REQUIRED: "Invitation failed. Direct invitations require an accepted friendship."
+    RANK_MISMATCH: "The ranks are not compatible in this lobby."
+    PROFILE_MISMATCH: "Your friend's game profile does not match this lobby's platform, region, or role."
+    PROFILE_MISMATCH_NO_ROLE: "Your friend's game profile does not match this lobby's platform or region."
+    UNAVAILABLE: "The invitation could not be sent. Check the username and whether the lobby is still open."
     Modal:
       Title: "Invite a friend"
       Username: "Friend username"
@@ -378,6 +393,7 @@ Lobby:
   Invitation:
     Title: "Lobby invitation"
     Description: "**%leader%** invited you to lobby **#%lobbyId%**.\nHost rating: **%leaderRating%**\nInvitation type: **%source%**\nGame: **%game%**\nPlayers: **%playerCount%/%capacity%**\nPlatform: **%platform%**\nRegion: **%region%**\nCommunication languages: **%languages%**\nAllowed ranks: **%ranks%**\n\n**Current players**\n%players%\n\nThis message is updated automatically whenever the lobby changes."
+    DescriptionNoRank: "**%leader%** invited you to lobby **#%lobbyId%**.\nHost rating: **%leaderRating%**\nInvitation type: **%source%**\nGame: **%game%**\nPlayers: **%playerCount%/%capacity%**\nPlatform: **%platform%**\nRegion: **%region%**\nCommunication languages: **%languages%**\n\n**Current players**\n%players%\n\nThis message is updated automatically whenever the lobby changes."
     Accept: "Join"
     LeavePartyAndAccept: "Leave party & accept"
     Decline: "Decline"
@@ -397,6 +413,9 @@ Lobby:
       Description: "A working voice channel could not currently be created on any partner guild for this lobby. The affected guild managers were informed. Please try again later or notify the MYG team."
     ReadyExternal: "The lobby is full. Join the partner guild within six minutes: %invite%\nThen open voice channel **%channel%**."
     ReadyMember: "The lobby is full. Your voice channel is ready: %channel%"
+    GuildJoined:
+      Title: "Go directly to your lobby"
+      Description: "You joined the partner guild. Open the voice channel directly here: %channel%\nIf needed, you can also open the invite again: %invite%"
     Reminder:
       Title: "One minute left to join"
       Description: "You have approximately one minute left to join the voice channel for lobby #%lobbyId%."
@@ -488,6 +507,9 @@ GameProfile:
     title: "Your game profiles"
     description: "**%count% profiles** · page %page%/%pages%\n\n%profiles%"
     Entry: "**%game% · %platform%**\nRegion: %region% · rank: %rank% · role: %role%"
+    EntryNoRank: "**%game% · %platform%**\nRegion: %region% · role: %role%"
+    EntryNoRole: "**%game% · %platform%**\nRegion: %region% · rank: %rank%"
+    EntryBasic: "**%game% · %platform%**\nRegion: %region%"
     None: "You have not created any game profiles yet."
     Configure: "Add / edit profile"
     Languages: "Communication languages"
@@ -496,6 +518,9 @@ GameProfile:
   Confirmation:
     Title: "Confirm game profile changes"
     Description: "Game: **%game%**\n\n**Current**\nPlatform: %oldPlatform%\nRegion: %oldRegion%\nRank: %oldRank%\nRole: %oldRole%\n\n**New**\nPlatform: %newPlatform%\nRegion: %newRegion%\nRank: %newRank%\nRole: %newRole%"
+    DescriptionNoRank: "Game: **%game%**\n\n**Current**\nPlatform: %oldPlatform%\nRegion: %oldRegion%\nRole: %oldRole%\n\n**New**\nPlatform: %newPlatform%\nRegion: %newRegion%\nRole: %newRole%"
+    DescriptionNoRole: "Game: **%game%**\n\n**Current**\nPlatform: %oldPlatform%\nRegion: %oldRegion%\nRank: %oldRank%\n\n**New**\nPlatform: %newPlatform%\nRegion: %newRegion%\nRank: %newRank%"
+    DescriptionBasic: "Game: **%game%**\n\n**Current**\nPlatform: %oldPlatform%\nRegion: %oldRegion%\n\n**New**\nPlatform: %newPlatform%\nRegion: %newRegion%"
     Confirm: "Save changes"
     Cancel: "Cancel"
   Saved: "The game profile for **%game%** on **%platform%** was saved."
@@ -512,6 +537,9 @@ GameProfile:
   AfterLobby:
     Title: "Did your game profile change?"
     Description: "Please check whether your rank, platform, region, or role changed after this lobby."
+    DescriptionNoRank: "Please check whether your platform, region, or role changed after this lobby."
+    DescriptionNoRole: "Please check whether your rank, platform, or region changed after this lobby."
+    DescriptionBasic: "Please check whether your platform or region changed after this lobby."
     Changed: "Update profile"
     Unchanged: "No change"
     ConfirmedUnchanged: "Your saved game profile remains unchanged."
@@ -542,6 +570,9 @@ PassiveQ:
 
 Inbox:
   Title: "Your MYG inbox"
+  Welcome:
+    Title: "Welcome to MatchYourGame"
+    Description: "Great to have you here! Your MatchYourGame account is ready. You can now configure your profile and find matching players from your management message."
   Description: "**%count% messages** · **%unread% unread** · page %page%/%pages%\n\n%messages%"
   Empty: "Your inbox is empty."
   Entry: "%status% **%title%** · %date%"
@@ -593,13 +624,13 @@ Party:
     NotAvailable: "This party invitation is no longer available."
 
 Match:
-  OnlyHost: "Only the host can add matches after closing the lobby."
+  OnlyHost: "Only the host can add matches while the lobby is running."
   NoStatsPending: "No statistic entries are pending."
   Confirmed: "Match confirmed."
-  Disputed: "The match was marked as disputed for moderation."
+  Disputed: "The match was marked as disputed."
   AllEntered: "All matches for this lobby have been entered."
   CreateFailed: "The match could not be created."
-  Submitted: "The match was submitted for confirmation. Add another match or finish."
+  Submitted: "The match was recorded. Participants will be asked to confirm it after the lobby closes."
   Created: "The match was created for the entire lobby. Continue with the configured game statistics."
   SessionUnavailable: "This match entry session is no longer available."
   InvalidStat: "Invalid statistic value. Check the expected data type."
@@ -610,13 +641,65 @@ Match:
     Done: "No more matches"
     EnterStats: "Enter statistics"
     NextStats: "Next statistics"
+    BackToLobby: "Back to lobby management"
   StatsModal:
     Title: "Enter match statistics"
+  Participants:
+    Title: "Players in this match"
+    Description: "Select at least two players who participated in this specific match. Former lobby members who have since left remain available. Only the selected players will later receive the confirmation request for this match."
+    Select: "Select participating players"
+    Saved: "The players for this match were saved."
+  ProfileSaved:
+    Title: "Matches saved to your profile"
+    Description: "Matches **%matches%** from lobby **#%lobby%** were confirmed by every required player and are now saved to your profile."
   Confirmation:
     Title: "Confirm match result"
-    Description: "Please confirm the submitted result for match #%matchId%."
+    Description: "Please review the submitted result for match **#%matchId%**.\n\n%results%"
     Confirm: "Confirm"
     Dispute: "Dispute"
+    Unavailable: "This match result can no longer be confirmed or changed."
+  Correction:
+    Title: "Correct match result"
+    Saved: "Changes saved temporarily. Continue with the remaining values."
+    Next: "Edit more values"
+    Submitted: "Your change was applied. The host and the other players must now confirm this match again."
+  Entry:
+    Title: "Matches from the closed lobby"
+    ProgressTitle: "Match entry"
+    Description: "You can add more matches until **%deadline%**. This message is updated after every completed match. Select “No more matches” when finished.\n\n%matches%"
+    Unavailable: "Match entry has already ended or the one-hour deadline has expired."
+  Active:
+    Title: "Match entry for the running lobby"
+    Description: "%notice%\n\n**Recorded matches – team values**\n%matches%\n\nUse the match dropdown to view player values."
+    PlayerSelect: "View player values for a match"
+    PlayerTitle: "Player values · Match #%match%"
+    NoPlayerValues: "No player statistics are configured for this match."
+    BackToOverview: "Back to match overview"
+  Review:
+    Title: "Confirm all matches"
+    Description: "Review all matches from this lobby. “Confirm all matches” approves every result currently awaiting your response. If a result is wrong, you must propose a change from the dropdown before **%deadline%**. The changed match is then reviewed again by the host and players.\n\n%matches%"
+    CompleteTitle: "Match review complete"
+    CompleteDescription: "The match review is complete. All matches have been confirmed.\n\n%matches%"
+    ApproveAll: "Confirm all matches"
+    EditSelect: "Edit a match"
+    Match: "Match #%match%"
+  Proposal:
+    Title: "Review changed match result"
+    Description: "A participant changed the result for match **#%matchId%**. The original value is shown on the left and a change on the right.\n\n%results%"
+    Approve: "Approve changes"
+    Reject: "Reject match"
+    Approved: "The changes were approved and the match was confirmed."
+    Rejected: "The match was rejected and will not be included in history."
+    Unavailable: "This proposed change is no longer available."
+    UserApprovedTitle: "Changes approved"
+    UserApproved: "The lobby host approved your changes for match **#%matchId%**."
+    UserRejectedTitle: "Match rejected"
+    UserRejected: "The lobby host rejected your changes for match **#%matchId%**. The match will not be included in history."
+  Summary:
+    Title: "Recorded matches"
+    Description: "The lobby was closed. The following matches were recorded; participants will now receive confirmation requests.\n\n%matches%"
+    None: "No complete matches were recorded."
+    NoTeamValues: "No team statistics configured."
 
 Review:
   NotAvailable: "This review assignment is no longer available."
@@ -651,10 +734,14 @@ Admin:
   Broadcast:
     Sent: "The broadcast was saved for **%count% users**. Delivery: **%delivery%**."
     Failed: "The broadcast could not be saved."
+    Language:
+      DE: "German"
+      EN: "English"
     Modal:
       Title: "Broadcast to all users"
       EmbedTitle: "Message title"
       Message: "Message"
+      Language: "Recipient language"
       Delivery: "Delivery method"
   ActiveLobbies:
     Title: "Active lobbies"
@@ -954,6 +1041,24 @@ PartnerProgram:
     ChannelMissing: "The created voice channel no longer existed during final verification."
     GuildUnavailable: "The bot is no longer on the guild or can no longer access it."
     CategoryMissing: "The configured MYG voice category was deleted or is no longer accessible."
+  Health:
+    Suspended:
+      Title: "MYG partner guild temporarily disabled"
+      Description: "**%guild%** cannot currently be used for new lobby voice channels. The guild will be reactivated automatically once its configuration is valid again.\n\n**Reason**\n%problem%"
+    Restored:
+      Title: "MYG partner guild active again"
+      Description: "**%guild%** meets all requirements again and can be used for lobby voice channels."
+
+GuildHealth:
+  Registration:
+    Title: "Account creation unavailable"
+    Description: "The create-user area on **%guild%** is currently unavailable or incomplete.\n\n**Reason**\n%problem%"
+    ChannelMissing: "The configured create-user channel was deleted or is no longer accessible."
+    MessageMissing: "The create-user message containing the registration button was deleted or is no longer accessible."
+    PermissionsMissing: "The bot is missing permission to view, write in, or read message history in the create-user channel."
+    Recreate: "Recreate create-user area"
+    Recreated: "The create-user area was restored successfully."
+    RecreateFailed: "The create-user area could not be restored. Check the bot permissions and try again."
 
 Tutorial:
   Title: "Welcome to MatchYourGame"

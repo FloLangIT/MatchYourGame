@@ -23,6 +23,7 @@ import de.flolang.matchyourgame.database.lobby.PassiveQueueSettingsRepository;
 import de.flolang.matchyourgame.database.user.UserRepository;
 import de.flolang.matchyourgame.database.user.InboxMessageRepository;
 import de.flolang.matchyourgame.listener.guild.GuildJoinListener;
+import de.flolang.matchyourgame.listener.guild.DiscordHealthListener;
 import de.flolang.matchyourgame.listener.guild.SetupGuildListener;
 import de.flolang.matchyourgame.listener.guild.LobbyVoiceListener;
 import de.flolang.matchyourgame.listener.guild.LobbyGuildMemberListener;
@@ -38,11 +39,14 @@ import de.flolang.matchyourgame.manager.lobby.LobbyService;
 import de.flolang.matchyourgame.manager.match.MatchService;
 import de.flolang.matchyourgame.manager.review.ReviewService;
 import de.flolang.matchyourgame.manager.lobby.GameSelectionWizard;
+import de.flolang.matchyourgame.manager.DiscordHealthService;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.utils.ChunkingFilter;
+import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +70,7 @@ public class Main {
     public static MatchService matchService;
     public static GameSelectionWizard gameSelectionWizard;
     public static de.flolang.matchyourgame.manager.party.PartyService partyService;
+    public static DiscordHealthService healthService;
     private final ScheduledExecutorService lobbyScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread thread = new Thread(r, "lobby-invitation-waves");
         thread.setDaemon(true);
@@ -75,6 +80,8 @@ public class Main {
     public Main() throws InterruptedException {
         new ConfigManager();
         jda = JDABuilder.createDefault(ConfigManager.getString("Discord.Token"), GatewayIntent.getIntents(-1))
+                .setMemberCachePolicy(MemberCachePolicy.ALL)
+                .setChunkingFilter(ChunkingFilter.ALL)
                 .enableCache(CacheFlag.ONLINE_STATUS, CacheFlag.MEMBER_OVERRIDES)
                 .setStatus(OnlineStatus.ONLINE)
                 .setActivity(Activity.customStatus(ConfigManager.getString("Discord.Activity").replace("%version%", VERSION)))
@@ -107,8 +114,7 @@ public class Main {
         ReportRepository.init();
         BanRepository.init();
         WarningRepository.init();
-        GuildRepository.getAll().forEach(guild ->
-                de.flolang.matchyourgame.manager.PartnerGuildService.checkEligibility(guild.getGuildID()));
+        healthService = new DiscordHealthService(jda);
 
         lobbyService = new LobbyService(new LobbyDiscordCoordinator(jda));
         reviewService = new ReviewService(jda);
@@ -116,11 +122,19 @@ public class Main {
         gameSelectionWizard = new GameSelectionWizard();
         partyService = new de.flolang.matchyourgame.manager.party.PartyService();
         lobbyScheduler.scheduleWithFixedDelay(() -> {
-            lobbyService.processInvitationWaves();
-            partyService.processInactiveParties();
+            try {
+                lobbyService.processInvitationWaves();
+                partyService.processInactiveParties();
+                matchService.processDeadlines();
+            } catch (RuntimeException exception) {
+                LOGGER.error("Scheduled lobby and match processing failed", exception);
+            }
         }, 1, 1, TimeUnit.MINUTES);
 
         registerListeners();
+        healthService.runStartupChecks();
+        GuildRepository.getAll().forEach(guild ->
+                de.flolang.matchyourgame.manager.PartnerGuildService.checkEligibility(guild.getGuildID()));
         AdminSlashCommandListener.register(jda);
         ClearChatCommandListener.register(jda);
         TutorialCommandListener.register(jda);
@@ -211,7 +225,8 @@ public class Main {
 
     private void registerListeners() {
         jda.addEventListener(new AuditLogListener());
-        jda.addEventListener(new GuildJoinListener());
+        jda.addEventListener(new GuildJoinListener(healthService));
+        jda.addEventListener(new DiscordHealthListener(healthService));
         jda.addEventListener(new CreateUserListener());
         jda.addEventListener(new SetupGuildListener());
         jda.addEventListener(new GuildManagerListener());

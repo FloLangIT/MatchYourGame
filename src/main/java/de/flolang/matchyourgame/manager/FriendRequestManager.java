@@ -3,7 +3,9 @@ package de.flolang.matchyourgame.manager;
 import de.flolang.matchyourgame.Main;
 import de.flolang.matchyourgame.database.friend.FriendObject;
 import de.flolang.matchyourgame.database.friend.FriendRepository;
+import de.flolang.matchyourgame.database.user.InboxMessageRepository;
 import de.flolang.matchyourgame.database.user.UserController;
+import de.flolang.matchyourgame.database.user.UserObject;
 import de.flolang.matchyourgame.language.LanguageManager;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
@@ -47,7 +49,17 @@ public class FriendRequestManager {
     }
 
     public static void sendFriendRequest(int requesterID, int receiverID) {
-        long discordID = UserController.get(receiverID).getDiscordID();
+        UserObject requester = UserController.get(requesterID);
+        UserObject receiver = UserController.get(receiverID);
+        if (requester == null || receiver == null) return;
+        FriendRepository.create(requesterID, receiverID);
+        HashMap<String, String> inboxReplacements = new HashMap<>();
+        inboxReplacements.put("%requester%", requester.getUsername());
+        InboxService.sendLinkedToUser(requester, receiver,
+                LanguageManager.getMessageForUser("FriendRequest.RequestReceive.title", receiverID, inboxReplacements),
+                LanguageManager.getMessageForUser("FriendRequest.RequestReceive.description", receiverID, inboxReplacements),
+                InboxMessageRepository.DeliveryMode.SILENT, "FRIEND_INVITE", requesterID);
+        long discordID = receiver.getDiscordID();
         Main.jda.retrieveUserById(discordID).queue(user -> {
                     user.openPrivateChannel().queue(privateChannel -> {
                         HashMap<String, String> replacing = new HashMap<>();
@@ -62,7 +74,6 @@ public class FriendRequestManager {
                         ).queue();
                     });
                 });
-        FriendRepository.create(requesterID, receiverID);
     }
 
 }

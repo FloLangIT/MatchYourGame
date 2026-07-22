@@ -81,7 +81,7 @@ public class SetupGuildListener extends ListenerAdapter {
             return;
         }
         try {
-            guild.createTextChannel(LanguageManager.getMessageByLanguage("NewGuild.SetupGuild.CreateProfileChannel", language)).addRolePermissionOverride(guild.getIdLong(), EnumSet.of(Permission.VIEW_CHANNEL), EnumSet.of(Permission.MESSAGE_SEND)).addMemberPermissionOverride(event.getJDA().getSelfUser().getIdLong(), EnumSet.of(Permission.MESSAGE_SEND), null).queue(textChannel -> {
+            guild.createTextChannel(LanguageManager.getMessageByLanguage("NewGuild.SetupGuild.CreateProfileChannel", language)).addRolePermissionOverride(guild.getIdLong(), EnumSet.of(Permission.VIEW_CHANNEL), EnumSet.of(Permission.MESSAGE_SEND)).addMemberPermissionOverride(event.getJDA().getSelfUser().getIdLong(), EnumSet.of(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MESSAGE_HISTORY), null).queue(textChannel -> {
                 GuildObject guildObject = GuildController.create(guild.getIdLong(), userObject.getId(), 0, textChannel.getIdLong(), language);
                 GuildSetupAuthorizationRepository.delete(guild.getIdLong());
                 DiscordLogService.action("GUILD_SETUP", "Guild " + guild.getName() + " (" + guild.getId()
@@ -95,6 +95,9 @@ public class SetupGuildListener extends ListenerAdapter {
                 }
                 PartnerGuildService.checkEligibility(guild.getIdLong());
                 textChannel.sendMessageEmbeds(LanguageManager.getEmbedByLanguage("CreateUser", language, new HashMap<>()).build()).addComponents(ActionRow.of(Button.primary("createAccount", LanguageManager.getMessageByLanguage("CreateUser.Button", language)))).queue(message -> {
+                    if (de.flolang.matchyourgame.Main.healthService != null)
+                        de.flolang.matchyourgame.Main.healthService.storeRegistrationMessage(
+                                guild.getIdLong(), textChannel.getIdLong(), message.getIdLong());
                     HashMap<String, String> replacings = new HashMap<>();
                     replacings.put("%textChannel%", "<#" + textChannel.getId() + ">");
                     replacings.put("%partnerGuildUserCount%", String.valueOf(ConfigManager.getInt(
