@@ -15,7 +15,11 @@ public class GuildObject {
     private int managerUser;
     private long mygVoiceCategoryId;
     private long mygTextChannelId;
+    private long mygTextMessageId;
     private boolean partnerGuild;
+    private boolean active;
+    private boolean partnerOperational;
+    private boolean registrationOperational;
     private Language language;
     private final Timestamp addedAt;
     private Timestamp lastChangeAt;
