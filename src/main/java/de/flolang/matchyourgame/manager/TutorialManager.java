@@ -2,6 +2,7 @@ package de.flolang.matchyourgame.manager;
 
 import de.flolang.matchyourgame.Main;
 import de.flolang.matchyourgame.database.user.UserObject;
+import de.flolang.matchyourgame.database.user.InboxMessageRepository;
 import de.flolang.matchyourgame.embed.EmbedCreator;
 import de.flolang.matchyourgame.language.LanguageManager;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
@@ -18,9 +19,10 @@ public final class TutorialManager {
     }
 
     public static void send(PrivateChannel channel, UserObject user) {
-        channel.sendMessageEmbeds(new EmbedCreator()
-                        .setTitle(LanguageManager.getMessageForUser("Tutorial.Title", user.getId()))
-                        .setDescription(LanguageManager.getMessageForUser("Tutorial.Description", user.getId())).build())
+        String title = LanguageManager.getMessageForUser("Tutorial.Title", user.getId());
+        String description = LanguageManager.getMessageForUser("Tutorial.Description", user.getId());
+        InboxService.sendToUser(user, user, title, description, InboxMessageRepository.DeliveryMode.SILENT);
+        channel.sendMessageEmbeds(new EmbedCreator().setTitle(title).setDescription(description).build())
                 .setComponents(ActionRow.of(Button.danger("delete",
                         LanguageManager.getMessageForUser("General.Button.DeleteMessage", user.getId())))).queue();
     }

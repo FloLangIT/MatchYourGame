@@ -188,12 +188,16 @@ UserProfile:
       Description: "**%inviter%** invited you to the crew **%clan%**."
       Accept: "Accept"
       Decline: "Decline"
+      Ignore: "Ignore"
       Accepted: "You joined the crew."
       Declined: "You declined the crew invitation."
       Unavailable: "This crew invitation is no longer available."
     MemberJoined:
       Title: "New crew member"
       Description: "**%user%** joined the crew **%clan%**."
+    MemberLeft:
+      Title: "Crew member left"
+      Description: "**%user%** left the crew **%clan%**."
     Rename:
       Title: "Rename crew"
       Failed: "The crew could not be renamed. The name may already be taken."
@@ -564,6 +568,9 @@ PassiveQ:
 
 Inbox:
   Title: "Your MYG inbox"
+  Welcome:
+    Title: "Welcome to MatchYourGame"
+    Description: "Great to have you here! Your MatchYourGame account is ready. You can now configure your profile and find matching players from your management message."
   Description: "**%count% messages** · **%unread% unread** · page %page%/%pages%\n\n%messages%"
   Empty: "Your inbox is empty."
   Entry: "%status% **%title%** · %date%"
