@@ -300,6 +300,7 @@ Lobby:
   View:
     Title: "Lobby #%lobbyId%"
     Description: "Spiel: %game%\nSpieler: %players%/%capacity%\nPlattform: %platform%\nRegion: %region%\nKommunikationssprachen: %languages%\nErlaubte Ränge: %ranks%\nVoice-Channel: %voiceInvite%\n\n**Spieler in der Lobby**\n%playerList%"
+    DescriptionNoRank: "Spiel: %game%\nSpieler: %players%/%capacity%\nPlattform: %platform%\nRegion: %region%\nKommunikationssprachen: %languages%\nVoice-Channel: %voiceInvite%\n\n**Spieler in der Lobby**\n%playerList%"
     AnyRank: "Alle Ränge"
     AnyLanguage: "Beliebig"
     JoinVoice: "Voice-Channel beitreten"
@@ -317,6 +318,7 @@ Lobby:
     UnknownRank: "Der Rang **%rank%** wurde für dieses Spiel nicht gefunden. Nutze den exakten Rangnamen."
     Result:
       UPDATED: "Lobby aktualisiert: **%capacity% Spieler**, erlaubte Ränge **%ranks%**."
+      UPDATED_NO_RANK: "Lobby aktualisiert: **%capacity% Spieler**."
       UNAVAILABLE: "Die Lobby-Einstellungen sind nicht mehr verfügbar oder du bist nicht der Host."
       INVALID_CAPACITY: "Die Spieleranzahl muss zwischen 2 und 99 liegen."
       CAPACITY_BELOW_MEMBERS: "Die Spieleranzahl darf nicht kleiner als die aktuell **%members% Mitglieder** sein."
@@ -343,11 +345,13 @@ Lobby:
     OptionLabel: "Lobby #%lobbyId% · %host%"
     OptionDescription: "%players%/%capacity% Spieler · %platform% · %region%"
     None: "Aktuell wurde keine offene PassiveQ-Lobby gefunden, die genügend Platz hat und mit allen Profil-, Sprach- und Rangregeln kompatibel ist."
+    NoneNoRank: "Aktuell wurde keine offene PassiveQ-Lobby gefunden, die genügend Platz hat und mit allen Profil- und Sprachregeln kompatibel ist."
     Result:
       MERGED: "Deine Lobby wurde erfolgreich mit Lobby **#%targetLobby%** zusammengeführt."
       UNAVAILABLE: "Eine der Lobbys ist nicht mehr verfügbar oder die Ziel-Lobby sucht nicht mehr über PassiveQ."
       NOT_ENOUGH_SPACE: "In der Ziel-Lobby ist nicht mehr genügend Platz für alle Spieler."
       INCOMPATIBLE: "Die Lobbys sind aufgrund ihrer Profile, Sprachen oder Rangregeln nicht mehr kompatibel."
+      INCOMPATIBLE_NO_RANK: "Die Lobbys sind aufgrund ihrer Profile oder Sprachen nicht mehr kompatibel."
   Clan:
     UseInviteButton: "Nutze „Crew einladen“, um Crew-Mitglieder einzuladen."
   Browse:
@@ -355,12 +359,17 @@ Lobby:
     Title: "Passende Lobbys · %page%/%pages%"
     Join: "Lobby #%lobbyId% beitreten"
     Entry: "#%lobbyId% · %players%/%capacity% · Ränge %rankMin%–%rankMax%"
+    EntryNoRank: "#%lobbyId% · %players%/%capacity% Spieler"
     Modal:
       Title: "Passende Lobbys finden"
       Game: "Spiel-ID"
   InviteFriend:
-    Success: "Freund wurde eingeladen."
-    Failed: "Einladung fehlgeschlagen. Direkte Einladungen benötigen eine bestätigte Freundschaft."
+    INVITED: "Freund wurde eingeladen."
+    FRIENDSHIP_REQUIRED: "Einladung fehlgeschlagen. Direkte Einladungen benötigen eine bestätigte Freundschaft."
+    RANK_MISMATCH: "Ränge passen in dieser Lobby nicht zusammen."
+    PROFILE_MISMATCH: "Das Spielprofil des Freundes passt bei Plattform, Region oder Rolle nicht zu dieser Lobby."
+    PROFILE_MISMATCH_NO_ROLE: "Das Spielprofil des Freundes passt bei Plattform oder Region nicht zu dieser Lobby."
+    UNAVAILABLE: "Die Einladung konnte nicht gesendet werden. Prüfe den Benutzernamen und ob die Lobby noch offen ist."
     Modal:
       Title: "Freund einladen"
       Username: "Benutzername des Freundes"
@@ -378,6 +387,7 @@ Lobby:
   Invitation:
     Title: "Lobby-Einladung"
     Description: "**%leader%** hat dich in Lobby **#%lobbyId%** eingeladen.\nBewertung des Hosts: **%leaderRating%**\nEinladungsart: **%source%**\nSpiel: **%game%**\nSpieler: **%playerCount%/%capacity%**\nPlattform: **%platform%**\nRegion: **%region%**\nKommunikationssprachen: **%languages%**\nErlaubte Ränge: **%ranks%**\n\n**Aktuelle Mitspieler**\n%players%\n\nDiese Nachricht wird bei Änderungen an der Lobby automatisch aktualisiert."
+    DescriptionNoRank: "**%leader%** hat dich in Lobby **#%lobbyId%** eingeladen.\nBewertung des Hosts: **%leaderRating%**\nEinladungsart: **%source%**\nSpiel: **%game%**\nSpieler: **%playerCount%/%capacity%**\nPlattform: **%platform%**\nRegion: **%region%**\nKommunikationssprachen: **%languages%**\n\n**Aktuelle Mitspieler**\n%players%\n\nDiese Nachricht wird bei Änderungen an der Lobby automatisch aktualisiert."
     Accept: "Beitreten"
     LeavePartyAndAccept: "Party verlassen & annehmen"
     Decline: "Ablehnen"
@@ -491,6 +501,9 @@ GameProfile:
     title: "Deine Spielprofile"
     description: "**%count% Profile** · Seite %page%/%pages%\n\n%profiles%"
     Entry: "**%game% · %platform%**\nRegion: %region% · Rang: %rank% · Rolle: %role%"
+    EntryNoRank: "**%game% · %platform%**\nRegion: %region% · Rolle: %role%"
+    EntryNoRole: "**%game% · %platform%**\nRegion: %region% · Rang: %rank%"
+    EntryBasic: "**%game% · %platform%**\nRegion: %region%"
     None: "Du hast noch keine Spielprofile angelegt."
     Configure: "Profil hinzufügen / bearbeiten"
     Languages: "Kommunikationssprachen"
@@ -499,6 +512,9 @@ GameProfile:
   Confirmation:
     Title: "Änderungen am Spielprofil bestätigen"
     Description: "Spiel: **%game%**\n\n**Bisher**\nPlattform: %oldPlatform%\nRegion: %oldRegion%\nRang: %oldRank%\nRolle: %oldRole%\n\n**Neu**\nPlattform: %newPlatform%\nRegion: %newRegion%\nRang: %newRank%\nRolle: %newRole%"
+    DescriptionNoRank: "Spiel: **%game%**\n\n**Bisher**\nPlattform: %oldPlatform%\nRegion: %oldRegion%\nRolle: %oldRole%\n\n**Neu**\nPlattform: %newPlatform%\nRegion: %newRegion%\nRolle: %newRole%"
+    DescriptionNoRole: "Spiel: **%game%**\n\n**Bisher**\nPlattform: %oldPlatform%\nRegion: %oldRegion%\nRang: %oldRank%\n\n**Neu**\nPlattform: %newPlatform%\nRegion: %newRegion%\nRang: %newRank%"
+    DescriptionBasic: "Spiel: **%game%**\n\n**Bisher**\nPlattform: %oldPlatform%\nRegion: %oldRegion%\n\n**Neu**\nPlattform: %newPlatform%\nRegion: %newRegion%"
     Confirm: "Änderungen speichern"
     Cancel: "Abbrechen"
   Saved: "Das Spielprofil für **%game%** auf **%platform%** wurde gespeichert."
@@ -515,6 +531,9 @@ GameProfile:
   AfterLobby:
     Title: "Hat sich dein Spielprofil geändert?"
     Description: "Prüfe bitte nach dieser Lobby, ob sich Rang, Plattform, Region oder Rolle geändert haben."
+    DescriptionNoRank: "Prüfe bitte nach dieser Lobby, ob sich Plattform, Region oder Rolle geändert haben."
+    DescriptionNoRole: "Prüfe bitte nach dieser Lobby, ob sich Rang, Plattform oder Region geändert haben."
+    DescriptionBasic: "Prüfe bitte nach dieser Lobby, ob sich Plattform oder Region geändert haben."
     Changed: "Profil aktualisieren"
     Unchanged: "Keine Änderung"
     ConfirmedUnchanged: "Dein gespeichertes Spielprofil bleibt unverändert."

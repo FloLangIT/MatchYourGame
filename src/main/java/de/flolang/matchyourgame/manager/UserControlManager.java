@@ -31,6 +31,7 @@ import de.flolang.matchyourgame.embed.EmbedCreator;
 import de.flolang.matchyourgame.language.LanguageManager;
 import de.flolang.matchyourgame.language.CommunicationLanguageNames;
 import de.flolang.matchyourgame.manager.lobby.RankDisplayFormatter;
+import de.flolang.matchyourgame.manager.lobby.GameMessageVisibility;
 import de.flolang.matchyourgame.manager.review.RatingFormatter;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
@@ -157,7 +158,8 @@ public class UserControlManager {
         if (languageLabel.isBlank()) languageLabel = t("Lobby.View.AnyLanguage");
         replacements.put("%languages%", languageLabel);
         replacements.put("%language%", languageLabel);
-        replacements.put("%ranks%", compatibleRankLabel(lobby));
+        if (GameMessageVisibility.showsRanks(lobby.getGameID()))
+            replacements.put("%ranks%", compatibleRankLabel(lobby));
         replacements.put("%playerList%", lobbyPlayerList(lobby));
         replacements.put("%voiceInvite%", lobby.getVoiceInviteUrl() == null || lobby.getVoiceInviteUrl().isBlank()
                 ? t(lobby.getVoiceChannelID() == 0 ? "Lobby.View.VoiceNotReady" : "Lobby.View.VoicePreparing")
@@ -191,7 +193,9 @@ public class UserControlManager {
         rows.add(ActionRow.of(
                 Button.danger("lobbyLeave-" + lobby.getId(), t("Lobby.Button.Leave")),
                 Button.primary("mainPage", t("UserProfile.Button.Back"))));
-        String description = t("Lobby.View.Description", replacements).replace("%languages%", languageLabel);
+        String description = t(GameMessageVisibility.showsRanks(lobby.getGameID())
+                ? "Lobby.View.Description" : "Lobby.View.DescriptionNoRank", replacements)
+                .replace("%languages%", languageLabel);
         message.editMessageEmbeds(new EmbedCreator()
                         .setTitle(t("Lobby.View.Title", replacements))
                         .setDescription(description).build())
@@ -209,7 +213,8 @@ public class UserControlManager {
         int from = Math.min(page * 23, profiles.size());
         int to = Math.min(from + 23, profiles.size());
         List<GameProfile> displayed = profiles.subList(from, to);
-        String entries = displayed.stream().map(profile -> t("GameProfile.Manage.Entry", Map.of(
+        String entries = displayed.stream().map(profile -> t(GameMessageVisibility.profileVariantKey(
+                "GameProfile.Manage.Entry", profile.gameId()), Map.of(
                         "%game%", gameDisplayName(profile.gameId()),
                         "%platform%", profile.platform(),
                         "%region%", profile.region(),

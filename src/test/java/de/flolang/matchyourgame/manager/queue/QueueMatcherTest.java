@@ -1,6 +1,10 @@
 package de.flolang.matchyourgame.manager.queue;
 
+import de.flolang.matchyourgame.database.game.GameCache;
+import de.flolang.matchyourgame.database.game.GameObject;
 import de.flolang.matchyourgame.database.lobby.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
@@ -12,6 +16,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class QueueMatcherTest {
     private final Instant now = Instant.parse("2026-07-16T12:00:00Z");
+
+    @BeforeEach
+    void cacheSkillbasedGame() {
+        GameCache.add(new GameObject(1, 0, "Ranked", true, true));
+    }
 
     @Test
     void appliesHardProfileFilters() {
@@ -53,6 +62,19 @@ class QueueMatcherTest {
     void unrestrictedLobbyIgnoresRankLimits() {
         LobbyObject lobby = lobby(300, 600, true);
         assertTrue(QueueMatcher.matches(lobby, profile(1, "PC", "EU", "DE", 999, "SUPPORT", null)));
+    }
+
+    @Test
+    void nonSkillbasedGameIgnoresAllRankRules() {
+        GameCache.add(new GameObject(1, 0, "Casual", false, true));
+        LobbyObject lobby = lobby(300, 600, false);
+
+        assertTrue(QueueMatcher.matches(lobby, profile(1, "PC", "EU", "DE", 999, "SUPPORT", null)));
+    }
+
+    @AfterEach
+    void clearGameCache() {
+        GameCache.remove(1);
     }
 
     private LobbyObject lobby() {
