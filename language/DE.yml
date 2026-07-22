@@ -336,8 +336,10 @@ Lobby:
     Exhausted:
       Title: "Keine weiteren Spieler in der Passive Queue"
       Description: "Es sind keine weiteren passenden Spieler in der Passive Queue verfügbar. Aktuell befinden sich **%players% Spieler** in der Lobby. Du kannst mit dieser Spieleranzahl starten oder die Lobby auflösen."
+      DescriptionWithLobby: "Es sind keine weiteren passenden Spieler in der Passive Queue verfügbar. Aktuell befinden sich **%players% Spieler** in deiner Lobby. Alternativ könnt ihr sofort dieser passenden PassiveQ-Lobby beitreten:\n\nSpiel: %game%\nSpieler: %playerCount%/%capacity%\nPlattform: %platform%\nRegion: %region%\nKommunikationssprachen: %languages%\nErlaubte Ränge: %ranks%\n\n**Spieler in der Lobby**\n%playerList%"
+      DescriptionWithLobbyNoRank: "Es sind keine weiteren passenden Spieler in der Passive Queue verfügbar. Aktuell befinden sich **%players% Spieler** in deiner Lobby. Alternativ könnt ihr sofort dieser passenden PassiveQ-Lobby beitreten:\n\nSpiel: %game%\nSpieler: %playerCount%/%capacity%\nPlattform: %platform%\nRegion: %region%\nKommunikationssprachen: %languages%\n\n**Spieler in der Lobby**\n%playerList%"
     StartCurrent: "Mit aktuellen Spielern starten"
-    FindMerge: "Passende Lobby suchen"
+    FindMerge: "Andere PassiveQ Lobby beitreten"
     Dissolve: "Lobby auflösen"
     StartedCurrent: "Die Lobby wird mit der aktuellen Spieleranzahl gestartet."
     Dissolved: "Die Lobby wurde aufgelöst."

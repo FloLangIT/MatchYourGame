@@ -336,8 +336,10 @@ Lobby:
     Exhausted:
       Title: "No more players in Passive Queue"
       Description: "There are no more matching players available in Passive Queue. The lobby currently has **%players% players**. You can start with the current player count or dissolve the lobby."
+      DescriptionWithLobby: "There are no more matching players available in Passive Queue. Your lobby currently has **%players% players**. Alternatively, everyone can immediately join this suitable PassiveQ lobby:\n\nGame: %game%\nPlayers: %playerCount%/%capacity%\nPlatform: %platform%\nRegion: %region%\nCommunication languages: %languages%\nAllowed ranks: %ranks%\n\n**Players in the lobby**\n%playerList%"
+      DescriptionWithLobbyNoRank: "There are no more matching players available in Passive Queue. Your lobby currently has **%players% players**. Alternatively, everyone can immediately join this suitable PassiveQ lobby:\n\nGame: %game%\nPlayers: %playerCount%/%capacity%\nPlatform: %platform%\nRegion: %region%\nCommunication languages: %languages%\n\n**Players in the lobby**\n%playerList%"
     StartCurrent: "Start with current players"
-    FindMerge: "Find compatible lobby"
+    FindMerge: "Join another PassiveQ lobby"
     Dissolve: "Dissolve lobby"
     StartedCurrent: "The lobby is starting with its current player count."
     Dissolved: "The lobby was dissolved."

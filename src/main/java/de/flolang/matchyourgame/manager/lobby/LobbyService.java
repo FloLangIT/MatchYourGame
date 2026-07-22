@@ -27,7 +27,8 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class LobbyService {
-    public static final Duration INVITATION_WAVE_INTERVAL = Duration.ofMinutes(5);
+    public static final Duration INVITATION_WAVE_INTERVAL = Duration.ofMinutes(3);
+    private static final int PASSIVE_INVITES_PER_FREE_SLOT = 5;
     public static final Duration VOICE_JOIN_TIMEOUT = Duration.ofMinutes(6);
     private static final Logger LOGGER = LoggerFactory.getLogger(LobbyService.class);
 
@@ -96,7 +97,8 @@ public final class LobbyService {
         LobbyRepository.setPassiveQueue(lobbyId, true);
         lobby = LobbyRepository.get(lobbyId);
         int freeSlots = Math.max(0, lobby.getMaxPlayers() - LobbyRepository.memberCount(lobbyId));
-        int sent = sendRanked(lobby, SearchProfileRepository.passiveCandidates(lobby), freeSlots,
+        int sent = sendRanked(lobby, SearchProfileRepository.passiveCandidates(lobby),
+                freeSlots * PASSIVE_INVITES_PER_FREE_SLOT,
                 InvitationSource.PASSIVE_QUEUE);
         LobbyRepository.markInvitationWave(lobbyId);
         return new QueueStartResult(sent);
@@ -122,7 +124,7 @@ public final class LobbyService {
                                                      Integer requestedRankMin, Integer requestedRankMax,
                                                      boolean unrestrictedRanks) {
         LobbyObject lobby = LobbyRepository.get(lobbyId);
-        if (lobby == null || lobby.getLeaderID() != actorId || !lobby.isOpen())
+        if (lobby == null || lobby.getLeaderID() != actorId || !canEditFullLobby(lobby))
             return new LobbySettingsUpdate(LobbySettingsStatus.UNAVAILABLE, lobby, null, null);
         int members = LobbyRepository.memberCount(lobbyId);
         if (capacity < 2 || capacity > 99)
@@ -166,10 +168,18 @@ public final class LobbyService {
         }
         if (!LobbyRepository.updateSettings(lobbyId, capacity, effectiveMin, effectiveMax, unrestrictedRanks))
             return new LobbySettingsUpdate(LobbySettingsStatus.UNAVAILABLE, LobbyRepository.get(lobbyId), null, null);
+        if (capacity > members && lobby.getVoiceChannelID() != 0)
+            LobbyRepository.reopenPreservingVoiceChannel(lobbyId);
         LobbyObject updated = LobbyRepository.get(lobbyId);
+        discord.updateVoiceCapacity(updated);
         discord.refreshManagementMessages(updated);
         prepareVoiceIfFull(lobbyId);
         return new LobbySettingsUpdate(LobbySettingsStatus.UPDATED, updated, effectiveMin, effectiveMax);
+    }
+
+    public boolean canEditFullLobby(LobbyObject lobby) {
+        return lobby != null && List.of(LobbyStatus.OPEN, LobbyStatus.FORMING, LobbyStatus.READY, LobbyStatus.ACTIVE)
+                .contains(lobby.getStatus());
     }
 
     public List<GameOption> compatibleRanksForCurrentMembers(LobbyObject lobby) {
@@ -295,13 +305,28 @@ public final class LobbyService {
                 .filter(target -> target.getId() != sourceLobbyId && target.isPassiveQueue())
                 .filter(target -> sourceMembers.size() + LobbyRepository.memberCount(target.getId())
                         <= target.getMaxPlayers())
-                .filter(target -> mergeSettingsMatch(source, target, sourceMembers,
-                        LobbyRepository.memberIds(target.getId())))
                 .sorted(java.util.Comparator
-                        .comparingInt((LobbyObject target) -> target.getMaxPlayers()
+                        .comparingInt((LobbyObject target) -> mergePriority(source, target, sourceMembers))
+                        .thenComparingInt(target -> Math.abs(target.getMaxPlayers() - source.getMaxPlayers()))
+                        .thenComparingInt(target -> target.getMaxPlayers()
                                 - LobbyRepository.memberCount(target.getId()) - sourceMembers.size())
                         .thenComparing(LobbyObject::getCreatedAt))
                 .toList();
+    }
+
+    public LobbyObject findBestMergeCandidate(int sourceLobbyId, int sourceHostId) {
+        List<LobbyObject> candidates = findMergeCandidates(sourceLobbyId, sourceHostId);
+        return candidates.isEmpty() ? null : candidates.getFirst();
+    }
+
+    private int mergePriority(LobbyObject source, LobbyObject target, List<Integer> sourceMembers) {
+        List<Integer> targetMembers = LobbyRepository.memberIds(target.getId());
+        int freeTargetSlots = target.getMaxPlayers() - targetMembers.size();
+        boolean exactSize = target.getMaxPlayers() == source.getMaxPlayers()
+                && freeTargetSlots == sourceMembers.size();
+        if (exactSize) return 0;
+        if (joiningRanksMatch(target, sourceMembers)) return 1;
+        return 2;
     }
 
     public LobbyMergeResult mergeLobbies(int sourceLobbyId, int targetLobbyId, int sourceHostId) {
@@ -312,19 +337,17 @@ public final class LobbyService {
                 LobbyObject source = LobbyRepository.get(sourceLobbyId);
                 LobbyObject target = LobbyRepository.get(targetLobbyId);
                 if (source == null || target == null || source.getLeaderID() != sourceHostId
-                        || !source.isOpen() || !target.isOpen() || !target.isPassiveQueue())
+                        || !source.isOpen() || !target.isOpen() || !target.isPassiveQueue()
+                        || source.getGameID() != target.getGameID())
                     return LobbyMergeResult.UNAVAILABLE;
                 List<Integer> sourceMembers = LobbyRepository.memberIds(sourceLobbyId);
                 List<Integer> targetMembers = LobbyRepository.memberIds(targetLobbyId);
                 if (sourceMembers.size() + targetMembers.size() > target.getMaxPlayers())
                     return LobbyMergeResult.NOT_ENOUGH_SPACE;
-                if (!mergeSettingsMatch(source, target, sourceMembers, targetMembers))
-                    return LobbyMergeResult.INCOMPATIBLE;
                 List<String> commonLanguages = commonMergeLanguages(source, target, sourceMembers, targetMembers);
-                if (commonLanguages == null) return LobbyMergeResult.INCOMPATIBLE;
                 if (!LobbyRepository.mergeOpenLobbies(sourceLobbyId, targetLobbyId, sourceHostId))
                     return LobbyMergeResult.UNAVAILABLE;
-                LobbyLanguageRepository.set(targetLobbyId, commonLanguages);
+                if (commonLanguages != null) LobbyLanguageRepository.set(targetLobbyId, commonLanguages);
                 LobbyObject merged = LobbyRepository.get(targetLobbyId);
                 ManagementMessageUpdater.refreshFriendActivity(sourceMembers);
                 discord.refreshManagementMessages(merged);
@@ -334,14 +357,6 @@ public final class LobbyService {
                 return LobbyMergeResult.MERGED;
             }
         }
-    }
-
-    private boolean mergeSettingsMatch(LobbyObject source, LobbyObject target,
-                                       List<Integer> sourceMembers, List<Integer> targetMembers) {
-        if (source.getGameID() != target.getGameID()) return false;
-        return joiningProfilesMatch(target, sourceMembers)
-                && joiningProfilesMatch(source, targetMembers)
-                && commonMergeLanguages(source, target, sourceMembers, targetMembers) != null;
     }
 
     private List<String> commonMergeLanguages(LobbyObject source, LobbyObject target,
@@ -379,11 +394,13 @@ public final class LobbyService {
                     LobbyRepository.setClanQueue(lobby.getId(), false);
             }
             if (lobby.isPassiveQueue()) {
-                int sent = sendRanked(lobby, SearchProfileRepository.passiveCandidates(lobby), freeSlots,
+                int sent = sendRanked(lobby, SearchProfileRepository.passiveCandidates(lobby),
+                        freeSlots * PASSIVE_INVITES_PER_FREE_SLOT,
                         InvitationSource.PASSIVE_QUEUE);
                 if (sent == 0) {
+                    LobbyObject mergeTarget = findBestMergeCandidate(lobby.getId(), lobby.getLeaderID());
                     LobbyRepository.setPassiveQueue(lobby.getId(), false);
-                    discord.notifyPassiveQueueExhausted(LobbyRepository.get(lobby.getId()));
+                    discord.notifyPassiveQueueExhausted(LobbyRepository.get(lobby.getId()), mergeTarget);
                 }
             }
             LobbyRepository.markInvitationWave(lobby.getId());
@@ -458,32 +475,13 @@ public final class LobbyService {
 
     private void processVoiceTimeouts() {
         for (LobbyObject lobby : LobbyRepository.getDueForVoiceCheck(VOICE_JOIN_TIMEOUT)) {
-            List<Integer> affected = LobbyRepository.memberIds(lobby.getId());
             List<Integer> allMissing = LobbyRepository.missingVoiceMembers(lobby.getId());
             if (allMissing.isEmpty()) { LobbyRepository.markActive(lobby.getId()); continue; }
             List<Integer> missing = LobbyRepository.missingInitialVoiceMembers(lobby.getId());
             if (missing.isEmpty()) continue;
             for (int userId : missing) discord.notifyLobbyKick(userId, lobby.getId(),
                     t(userId, "Lobby.Kick.VoiceJoinTimeout"));
-            discord.deleteVoiceChannel(lobby);
-            LobbyRepository.excludeUsers(lobby.getId(), missing);
-            LobbyRepository.removeMembers(lobby.getId(), missing);
-            if (missing.contains(lobby.getLeaderID())) {
-                Integer nextHost = LobbyRepository.earliestActiveMember(lobby.getId());
-                if (nextHost == null) {
-                    LobbyRepository.close(lobby.getId());
-                    ManagementMessageUpdater.refreshFriendActivity(affected);
-                    for (int userId : missing) discord.refreshMainManagementMessage(userId);
-                    continue;
-                }
-                LobbyRepository.promoteHost(lobby.getId(), nextHost);
-                discord.notifyHostPromotion(nextHost, lobby.getId());
-            }
-            LobbyRepository.reopenAfterVoiceTimeout(lobby.getId());
-            ManagementMessageUpdater.refreshFriendActivity(affected);
-            LobbyObject updated = LobbyRepository.get(lobby.getId());
-            if (updated != null) discord.refreshManagementMessages(updated);
-            for (int userId : missing) discord.refreshMainManagementMessage(userId);
+            removeAndReopen(lobby, missing);
         }
     }
 
@@ -508,12 +506,12 @@ public final class LobbyService {
 
     private void removeAndReopen(LobbyObject lobby, List<Integer> removed) {
         List<Integer> affected = LobbyRepository.memberIds(lobby.getId());
-        discord.deleteVoiceChannel(lobby);
         LobbyRepository.excludeUsers(lobby.getId(), removed);
         LobbyRepository.removeMembers(lobby.getId(), removed);
         if (removed.contains(lobby.getLeaderID())) {
             Integer nextHost = LobbyRepository.earliestActiveMember(lobby.getId());
             if (nextHost == null) {
+                discord.deleteVoiceChannel(lobby);
                 LobbyRepository.close(lobby.getId());
                 ManagementMessageUpdater.refreshFriendActivity(affected);
                 for (int userId : removed) discord.refreshMainManagementMessage(userId);
@@ -522,7 +520,7 @@ public final class LobbyService {
             LobbyRepository.promoteHost(lobby.getId(), nextHost);
             discord.notifyHostPromotion(nextHost, lobby.getId());
         }
-        LobbyRepository.reopenAfterVoiceTimeout(lobby.getId());
+        LobbyRepository.reopenPreservingVoiceChannel(lobby.getId());
         ManagementMessageUpdater.refreshFriendActivity(affected);
         LobbyObject updated = LobbyRepository.get(lobby.getId());
         if (updated != null) discord.refreshManagementMessages(updated);
@@ -670,6 +668,22 @@ public final class LobbyService {
                     .filter(candidate -> joiningProfiles.stream().allMatch(existing ->
                             !QueueMatcher.usesRankRules(lobby) || RankCompatibilityRepository.isCompatible(
                                     lobby.getGameID(), existing.rankValue(), candidate.rankValue())))
+                    .findFirst().orElse(null);
+            if (profile == null) return false;
+            joiningProfiles.add(profile);
+        }
+        return true;
+    }
+
+    private boolean joiningRanksMatch(LobbyObject lobby, List<Integer> joiningUserIds) {
+        if (!QueueMatcher.usesRankRules(lobby)) return true;
+        List<GameProfile> joiningProfiles = new ArrayList<>();
+        for (int userId : joiningUserIds) {
+            GameProfile profile = GameProfileRepository.getForGame(userId, lobby.getGameID()).stream()
+                    .filter(candidate -> rankMatchesCurrentMembers(lobby, candidate.rankValue()))
+                    .filter(candidate -> joiningProfiles.stream().allMatch(existing ->
+                            RankCompatibilityRepository.isCompatible(lobby.getGameID(),
+                                    existing.rankValue(), candidate.rankValue())))
                     .findFirst().orElse(null);
             if (profile == null) return false;
             joiningProfiles.add(profile);

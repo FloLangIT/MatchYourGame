@@ -373,7 +373,7 @@ public final class LobbyRepository {
                 "UPDATE lobby SET max_players=?,custom_rank_min=?,custom_rank_max=?,rank_rules_unrestricted=?," +
                         "rank_min=CASE WHEN ?=FALSE AND rank_min=-1 THEN 0 ELSE rank_min END," +
                         "rank_max=CASE WHEN ?=FALSE AND rank_max=-1 THEN 2147483647 ELSE rank_max END " +
-                        "WHERE id=? AND status='OPEN'")) {
+                        "WHERE id=? AND status IN ('OPEN','FORMING','READY','ACTIVE')")) {
             ps.setInt(1, capacity);
             if (customRankMin == null) ps.setNull(2, Types.INTEGER); else ps.setInt(2, customRankMin);
             if (customRankMax == null) ps.setNull(3, Types.INTEGER); else ps.setInt(3, customRankMax);
@@ -568,6 +568,21 @@ public final class LobbyRepository {
                 ps -> ps.setInt(1, lobbyId));
         update("UPDATE lobby_member SET voice_joined_at=NULL,voice_rejoin_deadline=NULL,voice_extension_used=FALSE " +
                 "WHERE lobby_id=? AND left_at IS NULL", ps -> ps.setInt(1, lobbyId));
+    }
+
+    public static void reopenPreservingVoiceChannel(int lobbyId) {
+        update("UPDATE lobby SET status='OPEN',voice_invite_url=NULL,voice_reminder_sent_at=NULL," +
+                        "passive_queue=FALSE,clan_queue=FALSE,last_invite_wave_at=NULL WHERE id=?",
+                ps -> ps.setInt(1, lobbyId));
+    }
+
+    public static void beginExistingVoiceFormation(int lobbyId) {
+        update("UPDATE lobby SET status='FORMING',voice_created_at=CURRENT_TIMESTAMP," +
+                        "voice_invite_url=NULL,voice_reminder_sent_at=NULL WHERE id=?",
+                ps -> ps.setInt(1, lobbyId));
+        update("UPDATE lobby_invitation SET status='CANCELLED',responded_at=CURRENT_TIMESTAMP " +
+                        "WHERE lobby_id=? AND status='PENDING'",
+                ps -> ps.setInt(1, lobbyId));
     }
 
     public static void markActive(int lobbyId) {

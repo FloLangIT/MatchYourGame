@@ -162,7 +162,16 @@ public final class LobbyInteractionListener extends ListenerAdapter {
                         if (dissolved) event.getMessage().delete().queue();
                     });
         } else if (id.startsWith("lobbyFindMerge-")) {
-            showMergeCandidates(event, suffix(id), user);
+            int sourceLobbyId = suffix(id);
+            LobbyObject target = Main.lobbyService.findBestMergeCandidate(sourceLobbyId, user.getId());
+            int targetLobbyId = target == null ? 0 : target.getId();
+            LobbyService.LobbyMergeResult result = target == null ? LobbyService.LobbyMergeResult.UNAVAILABLE
+                    : Main.lobbyService.mergeLobbies(sourceLobbyId, targetLobbyId, user.getId());
+            event.reply(t(user.getId(), "Lobby.Merge.Result." + result.name(), Map.of(
+                            "%targetLobby%", String.valueOf(targetLobbyId))))
+                    .setEphemeral(true).queue(ignored -> {
+                        if (result == LobbyService.LobbyMergeResult.MERGED) event.getMessage().delete().queue();
+                    });
         } else if (id.startsWith("lobbyJoin-")) {
             int lobbyId = suffix(id);
             replyJoin(event, Main.lobbyService.joinBrowse(lobbyId, user.getId()), lobbyId, user.getId());
@@ -481,7 +490,7 @@ public final class LobbyInteractionListener extends ListenerAdapter {
 
     private void showLobbySettingsModal(ButtonInteractionEvent event, int lobbyId, UserObject user) {
         LobbyObject lobby = LobbyRepository.get(lobbyId);
-        if (lobby == null || lobby.getLeaderID() != user.getId() || !lobby.isOpen()) {
+        if (lobby == null || lobby.getLeaderID() != user.getId() || !Main.lobbyService.canEditFullLobby(lobby)) {
             event.reply(t(user.getId(), "Lobby.Settings.Result.UNAVAILABLE")).setEphemeral(true).queue();
             return;
         }
@@ -504,7 +513,7 @@ public final class LobbyInteractionListener extends ListenerAdapter {
 
     private void submitLobbySettings(ModalInteractionEvent event, int lobbyId, UserObject user) {
         LobbyObject lobby = LobbyRepository.get(lobbyId);
-        if (lobby == null || lobby.getLeaderID() != user.getId() || !lobby.isOpen()) {
+        if (lobby == null || lobby.getLeaderID() != user.getId() || !Main.lobbyService.canEditFullLobby(lobby)) {
             event.reply(t(user.getId(), "Lobby.Settings.Result.UNAVAILABLE")).setEphemeral(true).queue();
             return;
         }
