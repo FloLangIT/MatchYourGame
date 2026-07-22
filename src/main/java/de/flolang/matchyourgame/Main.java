@@ -116,8 +116,13 @@ public class Main {
         gameSelectionWizard = new GameSelectionWizard();
         partyService = new de.flolang.matchyourgame.manager.party.PartyService();
         lobbyScheduler.scheduleWithFixedDelay(() -> {
-            lobbyService.processInvitationWaves();
-            partyService.processInactiveParties();
+            try {
+                lobbyService.processInvitationWaves();
+                partyService.processInactiveParties();
+                matchService.processDeadlines();
+            } catch (RuntimeException exception) {
+                LOGGER.error("Scheduled lobby and match processing failed", exception);
+            }
         }, 1, 1, TimeUnit.MINUTES);
 
         registerListeners();

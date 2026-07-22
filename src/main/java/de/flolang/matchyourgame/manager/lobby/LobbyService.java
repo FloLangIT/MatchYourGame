@@ -1,5 +1,6 @@
 package de.flolang.matchyourgame.manager.lobby;
 
+import de.flolang.matchyourgame.Main;
 import de.flolang.matchyourgame.database.friend.FriendRepository;
 import de.flolang.matchyourgame.database.game.GameOption;
 import de.flolang.matchyourgame.database.game.RankCompatibilityRepository;
@@ -252,6 +253,7 @@ public final class LobbyService {
         if (lobby == null || lobby.getLeaderID() != hostId || lobby.getStatus() == LobbyStatus.CLOSED) return false;
         discord.deleteVoiceChannel(lobby);
         LobbyRepository.close(lobbyId);
+        if (Main.matchService != null) Main.matchService.submitLobbyForConfirmation(lobbyId);
         discord.refreshMainManagementMessages(lobby);
         ManagementMessageUpdater.refreshFriendActivity(LobbyRepository.memberIds(lobbyId));
         discord.promptGameProfileUpdates(lobby);
@@ -383,6 +385,7 @@ public final class LobbyService {
         LobbyObject lobby = LobbyRepository.getByVoiceChannel(voiceChannelId);
         UserObject user = UserController.get(discordUserId);
         if (lobby != null && user != null && LobbyRepository.memberIds(lobby.getId()).contains(user.getId())) {
+            discord.deleteVoiceReadyMessage(lobby, user.getId());
             LobbyRepository.markVoiceJoined(lobby.getId(), user.getId());
             if (LobbyRepository.missingVoiceMembers(lobby.getId()).isEmpty()) {
                 LobbyRepository.markActive(lobby.getId());
@@ -406,6 +409,7 @@ public final class LobbyService {
         if (lobby == null || (lobby.getStatus() != LobbyStatus.READY && lobby.getStatus() != LobbyStatus.ACTIVE)) return 0;
         discord.deleteVoiceChannel(lobby);
         LobbyRepository.close(lobby.getId());
+        if (Main.matchService != null) Main.matchService.submitLobbyForConfirmation(lobby.getId());
         discord.refreshMainManagementMessages(lobby);
         ManagementMessageUpdater.refreshFriendActivity(LobbyRepository.memberIds(lobby.getId()));
         discord.promptGameProfileUpdates(lobby);

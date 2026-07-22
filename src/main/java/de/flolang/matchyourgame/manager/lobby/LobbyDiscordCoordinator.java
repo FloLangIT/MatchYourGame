@@ -1,5 +1,6 @@
 package de.flolang.matchyourgame.manager.lobby;
 
+import de.flolang.matchyourgame.Main;
 import de.flolang.matchyourgame.database.guild.GuildObject;
 import de.flolang.matchyourgame.database.guild.GuildRepository;
 import de.flolang.matchyourgame.manager.PartnerGuildService;
@@ -247,7 +248,7 @@ public final class LobbyDiscordCoordinator {
 
     private void completeVoiceInvite(LobbyObject lobby, VoiceChannel channel, List<Integer> userIds, Invite invite) {
         LobbyRepository.setVoiceInviteUrl(lobby.getId(), invite.getUrl());
-        notifyVoiceReady(channel, userIds, invite.getUrl());
+        notifyVoiceReady(lobby, channel, userIds, invite.getUrl());
         refreshManagementMessages(LobbyRepository.get(lobby.getId()));
         PROVISIONING.remove(lobby.getId());
         ATTEMPTED_PARTNER_GUILDS.remove(lobby.getId());
@@ -410,12 +411,9 @@ public final class LobbyDiscordCoordinator {
         UserObject host = UserController.get(lobby.getLeaderID());
         if (host == null) return;
         jda.retrieveUserById(host.getDiscordID()).queue(discordUser -> discordUser.openPrivateChannel().queue(dm ->
-                dm.sendMessageEmbeds(new EmbedCreator().setTitle(t(host.getId(), "Lobby.AutoClosed.Title"))
-                                .setDescription(t(host.getId(), "Lobby.AutoClosed.Description")).build())
-                        .setComponents(ActionRow.of(
-                                Button.primary("matchAdd-" + lobby.getId(), t(host.getId(), "Match.Button.Add")),
-                                Button.success("matchDone-" + lobby.getId(), t(host.getId(), "Match.Button.Done"))))
-                        .queue()));
+            dm.sendMessageEmbeds(Main.matchService.closureSummary(lobby.getId(), host.getId()))
+                    .setComponents(Main.matchService.hostEntryComponents(lobby.getId(), host.getId()))
+                    .queue(message -> Main.matchService.storeHostEntryMessage(lobby.getId(), message.getId()))));
     }
 
     private PartnerTarget selectPartnerGuild(LobbyObject lobby,Set<Long> excludedGuilds) {
@@ -454,7 +452,7 @@ public final class LobbyDiscordCoordinator {
         return null;
     }
 
-    private void notifyVoiceReady(VoiceChannel voice, List<Integer> userIds, String inviteUrl) {
+    private void notifyVoiceReady(LobbyObject lobby, VoiceChannel voice, List<Integer> userIds, String inviteUrl) {
         for (int userId : userIds) {
             UserObject user = UserController.get(userId);
             if (user == null) continue;
@@ -466,8 +464,17 @@ public final class LobbyDiscordCoordinator {
                     : t(userId, "Lobby.Voice.ReadyMember", java.util.Map.of("%channel%", voice.getAsMention()));
             jda.retrieveUserById(user.getDiscordID()).queue(discordUser -> discordUser.openPrivateChannel().queue(dm ->
                     dm.sendMessageEmbeds(new EmbedCreator().setTitle(t(userId, "Lobby.Voice.Title")).setDescription(description).build())
-                            .setComponents(ActionRow.of(Button.danger("delete", t(userId, "General.Button.DeleteMessage")))).queue()));
+                            .setComponents(ActionRow.of(Button.danger("delete", t(userId, "General.Button.DeleteMessage"))))
+                            .queue(message -> LobbyRepository.storeVoiceReadyMessage(lobby.getId(), userId, message.getId()))));
         }
+    }
+
+    public void deleteVoiceReadyMessage(LobbyObject lobby, int userId) {
+        String messageId = LobbyRepository.takeVoiceReadyMessage(lobby.getId(), userId);
+        UserObject user = UserController.get(userId);
+        if (messageId == null || user == null) return;
+        jda.retrieveUserById(user.getDiscordID()).queue(discordUser -> discordUser.openPrivateChannel().queue(dm ->
+                dm.deleteMessageById(messageId).queue(null, ignored -> {})));
     }
 
     private void sendDeletable(int userId, String titleKey, String description) {
