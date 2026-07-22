@@ -6,9 +6,11 @@ import de.flolang.matchyourgame.database.report.BanRepository;
 import de.flolang.matchyourgame.database.report.ReportRepository;
 import de.flolang.matchyourgame.database.user.UserObject;
 import de.flolang.matchyourgame.database.user.UserRepository;
+import de.flolang.matchyourgame.database.user.InboxMessageRepository;
 import de.flolang.matchyourgame.database.party.PartyObject;
 import de.flolang.matchyourgame.database.party.PartyRepository;
 import de.flolang.matchyourgame.manager.ManagementMessageUpdater;
+import de.flolang.matchyourgame.manager.InboxService;
 import de.flolang.matchyourgame.embed.EmbedCreator;
 import de.flolang.matchyourgame.language.LanguageManager;
 import net.dv8tion.jda.api.components.label.Label;
@@ -245,12 +247,10 @@ public final class ReportModerationListener extends ListenerAdapter {
     private static void notifyFinished(ReportRepository.Report report, ReportRepository.Status status, String message) {
         UserObject reporter = UserRepository.get(report.reporterId());
         if (reporter == null) return;
-        Main.jda.retrieveUserById(reporter.getDiscordID()).queue(user -> user.openPrivateChannel().queue(dm ->
-                dm.sendMessageEmbeds(new EmbedCreator().setTitle(t(reporter, status == ReportRepository.Status.RESOLVED
-                                ? "Report.Finished.ResolvedTitle" : "Report.Finished.RejectedTitle"))
-                        .setDescription(message).build())
-                        .setComponents(ActionRow.of(Button.danger("delete",
-                                t(reporter, "General.Button.DeleteMessage")))).queue()));
+        InboxService.sendToUser(reporter, reporter,
+                t(reporter, status == ReportRepository.Status.RESOLVED
+                        ? "Report.Finished.ResolvedTitle" : "Report.Finished.RejectedTitle"),
+                message, InboxMessageRepository.DeliveryMode.SILENT);
     }
 
     private static void notifyBan(int targetId, Instant expires, String reason) {

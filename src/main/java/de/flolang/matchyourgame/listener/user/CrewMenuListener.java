@@ -2,11 +2,14 @@ package de.flolang.matchyourgame.listener.user;
 
 import de.flolang.matchyourgame.Main;
 import de.flolang.matchyourgame.database.lobby.ClanRepository;
+import de.flolang.matchyourgame.database.user.InboxMessageRepository;
 import de.flolang.matchyourgame.database.user.UserController;
 import de.flolang.matchyourgame.database.user.UserObject;
 import de.flolang.matchyourgame.embed.EmbedCreator;
 import de.flolang.matchyourgame.language.LanguageManager;
 import de.flolang.matchyourgame.manager.UserControlManager;
+import de.flolang.matchyourgame.manager.InboxService;
+import de.flolang.matchyourgame.manager.ManagementMessageUpdater;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.label.Label;
@@ -60,8 +63,10 @@ public final class CrewMenuListener extends ListenerAdapter {
             edit(event, user, manager -> manager.loadCrewMembersPage(values[0], values[2], values[3]));
         } else if (id.startsWith("crewLeave-")) {
             int[] values = numbers(id, 2);
+            ClanRepository.ClanInfo clan = ClanRepository.getForMember(values[0], user.getId());
             boolean changed = ClanRepository.leave(values[0], user.getId());
             if (!changed) { event.reply(t(user, "UserProfile.Crews.ActionFailed")).setEphemeral(true).queue(); return; }
+            notifyMemberLeft(clan, user);
             edit(event, user, manager -> manager.loadCrewsPage(values[1]));
         } else if (id.startsWith("crewDeleteAsk-")) {
             int[] values = numbers(id, 2);
@@ -84,6 +89,8 @@ public final class CrewMenuListener extends ListenerAdapter {
             int invitationId = numbers(id, 1)[0];
             ClanRepository.Invitation invitation = ClanRepository.invitation(invitationId);
             boolean accepted = ClanRepository.respondToInvitation(invitationId, user.getId(), true);
+            InboxMessageRepository.markReadByReference(user.getId(), "CLAN_INVITE", invitationId);
+            ManagementMessageUpdater.refreshMainPage(user.getId());
             var confirmation = event.editMessageEmbeds(result(user, accepted ? "UserProfile.Crews.Invitation.Accepted"
                     : "UserProfile.Crews.Invitation.Unavailable")).setComponents();
             if (accepted && invitation != null) {
@@ -93,8 +100,15 @@ public final class CrewMenuListener extends ListenerAdapter {
         } else if (id.startsWith("crewInviteDecline-")) {
             int invitationId = numbers(id, 1)[0];
             boolean declined = ClanRepository.respondToInvitation(invitationId, user.getId(), false);
+            InboxMessageRepository.markReadByReference(user.getId(), "CLAN_INVITE", invitationId);
+            ManagementMessageUpdater.refreshMainPage(user.getId());
             event.editMessageEmbeds(result(user, declined ? "UserProfile.Crews.Invitation.Declined"
                     : "UserProfile.Crews.Invitation.Unavailable")).setComponents().queue();
+        } else if (id.startsWith("crewInviteIgnore-")) {
+            int invitationId = numbers(id, 1)[0];
+            InboxMessageRepository.markReadByReference(user.getId(), "CLAN_INVITE", invitationId);
+            ManagementMessageUpdater.refreshMainPage(user.getId());
+            event.deferEdit().queue(ignored -> event.getMessage().delete().queue(null, error -> {}));
         }
     }
 
@@ -161,13 +175,18 @@ public final class CrewMenuListener extends ListenerAdapter {
     private static boolean sendInvitation(UserObject inviter, UserObject invitee, ClanRepository.ClanInfo clan,
                                           ClanRepository.Invitation invitation) {
         if (Main.jda == null || invitee == null) return false;
+        String title = t(invitee, "UserProfile.Crews.Invitation.Title");
+        String description = t(invitee, "UserProfile.Crews.Invitation.Description", Map.of(
+                "%inviter%", inviter.getUsername(), "%clan%", clan.name()));
+        InboxService.sendLinkedToUser(inviter, invitee, title, description,
+                InboxMessageRepository.DeliveryMode.SILENT, "CLAN_INVITE", invitation.id());
         Main.jda.retrieveUserById(invitee.getDiscordID()).queue(discordUser -> discordUser.openPrivateChannel().queue(dm ->
-                dm.sendMessageEmbeds(new EmbedCreator().setTitle(t(invitee, "UserProfile.Crews.Invitation.Title"))
-                                .setDescription(t(invitee, "UserProfile.Crews.Invitation.Description", Map.of(
-                                        "%inviter%", inviter.getUsername(), "%clan%", clan.name()))).build())
+                dm.sendMessageEmbeds(new EmbedCreator().setTitle(title).setDescription(description).build())
                         .setComponents(ActionRow.of(
                                 Button.success("crewInviteAccept-" + invitation.id(), t(invitee, "UserProfile.Crews.Invitation.Accept")),
-                                Button.danger("crewInviteDecline-" + invitation.id(), t(invitee, "UserProfile.Crews.Invitation.Decline"))))
+                                Button.danger("crewInviteDecline-" + invitation.id(), t(invitee, "UserProfile.Crews.Invitation.Decline")),
+                                Button.secondary("crewInviteIgnore-" + invitation.id(),
+                                        t(invitee, "UserProfile.Crews.Invitation.Ignore"))))
                         .queue()));
         return true;
     }
@@ -180,14 +199,24 @@ public final class CrewMenuListener extends ListenerAdapter {
             if (memberId == joinedUser.getId()) continue;
             UserObject member = UserController.get(memberId);
             if (member == null) continue;
-            Main.jda.retrieveUserById(member.getDiscordID()).queue(discordUser -> discordUser.openPrivateChannel().queue(dm ->
-                    dm.sendMessageEmbeds(new EmbedCreator()
-                                    .setTitle(t(member, "UserProfile.Crews.MemberJoined.Title"))
-                                    .setDescription(t(member, "UserProfile.Crews.MemberJoined.Description", Map.of(
-                                            "%user%", joinedUser.getUsername(), "%clan%", clan.name()))).build())
-                            .setComponents(ActionRow.of(Button.danger("delete",
-                                    t(member, "General.Button.DeleteMessage"))))
-                            .queue()));
+            InboxService.sendToUser(joinedUser, member,
+                    t(member, "UserProfile.Crews.MemberJoined.Title"),
+                    t(member, "UserProfile.Crews.MemberJoined.Description", Map.of(
+                            "%user%", joinedUser.getUsername(), "%clan%", clan.name())),
+                    InboxMessageRepository.DeliveryMode.SILENT);
+        }
+    }
+
+    private static void notifyMemberLeft(ClanRepository.ClanInfo clan, UserObject leftUser) {
+        if (clan == null) return;
+        for (int memberId : ClanRepository.members(clan.id())) {
+            UserObject member = UserController.get(memberId);
+            if (member == null) continue;
+            InboxService.sendToUser(leftUser, member,
+                    t(member, "UserProfile.Crews.MemberLeft.Title"),
+                    t(member, "UserProfile.Crews.MemberLeft.Description", Map.of(
+                            "%user%", leftUser.getUsername(), "%clan%", clan.name())),
+                    InboxMessageRepository.DeliveryMode.SILENT);
         }
     }
 

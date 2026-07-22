@@ -2,12 +2,14 @@ package de.flolang.matchyourgame.listener.user;
 
 import de.flolang.matchyourgame.database.friend.FriendObject;
 import de.flolang.matchyourgame.database.friend.FriendRepository;
+import de.flolang.matchyourgame.database.user.InboxMessageRepository;
 import de.flolang.matchyourgame.database.user.UserController;
 import de.flolang.matchyourgame.database.user.UserObject;
 import de.flolang.matchyourgame.embed.EmbedCreator;
 import de.flolang.matchyourgame.language.Language;
 import de.flolang.matchyourgame.language.LanguageManager;
 import de.flolang.matchyourgame.manager.FriendRequestManager;
+import de.flolang.matchyourgame.manager.ManagementMessageUpdater;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
@@ -55,6 +57,8 @@ public class FriendRequestHandleListener extends ListenerAdapter {
         FriendRequestManager manager = new FriendRequestManager(friendship);
         if (accept) manager.acceptFriendRequest();
         else if (deny) manager.denyFriendRequest();
+        InboxMessageRepository.markReadByReference(receiver.getId(), "FRIEND_INVITE", requesterId);
+        ManagementMessageUpdater.refreshMainPage(receiver.getId());
         HashMap<String, String> replacements = new HashMap<>();
         replacements.put("%requester%", requester.getUsername());
         String resultKey = accept ? "FriendRequest.ConfirmAcceptToReceiver"

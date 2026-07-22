@@ -27,6 +27,19 @@ public final class InboxService {
         return message;
     }
 
+    public static InboxMessageRepository.InboxMessage sendLinkedToUser(UserObject sender, UserObject target,
+                                                                        String title, String content,
+                                                                        InboxMessageRepository.DeliveryMode mode,
+                                                                        String referenceType, long referenceId) {
+        if (sender == null || target == null) return null;
+        InboxMessageRepository.InboxMessage message = InboxMessageRepository.create(
+                target.getId(), sender.getId(), title, content, mode, referenceType, referenceId);
+        if (message == null) return null;
+        ManagementMessageUpdater.refreshMainPage(target.getId());
+        if (mode == InboxMessageRepository.DeliveryMode.DIRECT_DM) deliver(message);
+        return message;
+    }
+
     public static List<InboxMessageRepository.InboxMessage> broadcast(UserObject sender, String title,
                                                                        String content,
                                                                        InboxMessageRepository.DeliveryMode mode) {
