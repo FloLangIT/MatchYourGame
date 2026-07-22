@@ -36,7 +36,7 @@ public final class PartnerGuildService {
     public static void checkEligibility(long guildId) {
         if (Main.jda == null || guildId <= 0) return;
         GuildObject configured = GuildRepository.get(guildId);
-        if (configured == null || configured.isPartnerGuild()) return;
+        if (configured == null || !configured.isActive() || configured.isPartnerGuild()) return;
         int threshold = ConfigManager.getInt("PartnerGuildUserCreations",
                 ConfigManager.getInt("CreatedUserToBecomePartnerGuild", 30));
         if (GuildRepository.stats(guildId, configured.getManagerUserId()).accountCount() < threshold) return;

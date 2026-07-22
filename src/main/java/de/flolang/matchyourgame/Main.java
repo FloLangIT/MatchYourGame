@@ -23,6 +23,7 @@ import de.flolang.matchyourgame.database.lobby.PassiveQueueSettingsRepository;
 import de.flolang.matchyourgame.database.user.UserRepository;
 import de.flolang.matchyourgame.database.user.InboxMessageRepository;
 import de.flolang.matchyourgame.listener.guild.GuildJoinListener;
+import de.flolang.matchyourgame.listener.guild.DiscordHealthListener;
 import de.flolang.matchyourgame.listener.guild.SetupGuildListener;
 import de.flolang.matchyourgame.listener.guild.LobbyVoiceListener;
 import de.flolang.matchyourgame.listener.guild.LobbyGuildMemberListener;
@@ -38,6 +39,7 @@ import de.flolang.matchyourgame.manager.lobby.LobbyService;
 import de.flolang.matchyourgame.manager.match.MatchService;
 import de.flolang.matchyourgame.manager.review.ReviewService;
 import de.flolang.matchyourgame.manager.lobby.GameSelectionWizard;
+import de.flolang.matchyourgame.manager.DiscordHealthService;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
@@ -68,6 +70,7 @@ public class Main {
     public static MatchService matchService;
     public static GameSelectionWizard gameSelectionWizard;
     public static de.flolang.matchyourgame.manager.party.PartyService partyService;
+    public static DiscordHealthService healthService;
     private final ScheduledExecutorService lobbyScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread thread = new Thread(r, "lobby-invitation-waves");
         thread.setDaemon(true);
@@ -111,8 +114,7 @@ public class Main {
         ReportRepository.init();
         BanRepository.init();
         WarningRepository.init();
-        GuildRepository.getAll().forEach(guild ->
-                de.flolang.matchyourgame.manager.PartnerGuildService.checkEligibility(guild.getGuildID()));
+        healthService = new DiscordHealthService(jda);
 
         lobbyService = new LobbyService(new LobbyDiscordCoordinator(jda));
         reviewService = new ReviewService(jda);
@@ -130,6 +132,9 @@ public class Main {
         }, 1, 1, TimeUnit.MINUTES);
 
         registerListeners();
+        healthService.runStartupChecks();
+        GuildRepository.getAll().forEach(guild ->
+                de.flolang.matchyourgame.manager.PartnerGuildService.checkEligibility(guild.getGuildID()));
         AdminSlashCommandListener.register(jda);
         ClearChatCommandListener.register(jda);
         TutorialCommandListener.register(jda);
@@ -220,7 +225,8 @@ public class Main {
 
     private void registerListeners() {
         jda.addEventListener(new AuditLogListener());
-        jda.addEventListener(new GuildJoinListener());
+        jda.addEventListener(new GuildJoinListener(healthService));
+        jda.addEventListener(new DiscordHealthListener(healthService));
         jda.addEventListener(new CreateUserListener());
         jda.addEventListener(new SetupGuildListener());
         jda.addEventListener(new GuildManagerListener());

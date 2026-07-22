@@ -1028,6 +1028,24 @@ PartnerProgram:
     ChannelMissing: "Der erstellte Voice-Channel war bei der abschließenden Prüfung nicht mehr vorhanden."
     GuildUnavailable: "Der Bot ist nicht mehr auf der Guild oder kann sie nicht mehr erreichen."
     CategoryMissing: "Die konfigurierte MYG-Voice-Kategorie wurde gelöscht oder ist nicht mehr erreichbar."
+  Health:
+    Suspended:
+      Title: "MYG-Partner-Guild vorübergehend deaktiviert"
+      Description: "**%guild%** kann derzeit nicht für neue Lobby-Voice-Channels verwendet werden. Sobald die Konfiguration wieder vollständig gültig ist, wird die Guild automatisch reaktiviert.\n\n**Grund**\n%problem%"
+    Restored:
+      Title: "MYG-Partner-Guild wieder aktiv"
+      Description: "**%guild%** erfüllt wieder alle Anforderungen und kann erneut für Lobby-Voice-Channels verwendet werden."
+
+GuildHealth:
+  Registration:
+    Title: "Account-Erstellung nicht verfügbar"
+    Description: "Der Create-User-Bereich auf **%guild%** ist derzeit nicht vollständig verfügbar.\n\n**Grund**\n%problem%"
+    ChannelMissing: "Der konfigurierte Create-User-Channel wurde gelöscht oder ist nicht mehr erreichbar."
+    MessageMissing: "Die Create-User-Nachricht mit dem Registrierungsbutton wurde gelöscht oder ist nicht mehr erreichbar."
+    PermissionsMissing: "Dem Bot fehlen im Create-User-Channel Rechte zum Anzeigen, Schreiben oder Lesen des Nachrichtenverlaufs."
+    Recreate: "Create-User-Bereich neu erstellen"
+    Recreated: "Der Create-User-Bereich wurde erfolgreich wiederhergestellt."
+    RecreateFailed: "Der Create-User-Bereich konnte nicht wiederhergestellt werden. Prüfe die Bot-Berechtigungen und versuche es erneut."
 
 Tutorial:
   Title: "Willkommen bei MatchYourGame"

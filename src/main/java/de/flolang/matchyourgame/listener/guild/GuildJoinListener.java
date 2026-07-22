@@ -5,6 +5,7 @@ import de.flolang.matchyourgame.database.user.UserObject;
 import de.flolang.matchyourgame.database.guild.GuildSetupAuthorizationRepository;
 import de.flolang.matchyourgame.language.Language;
 import de.flolang.matchyourgame.language.LanguageManager;
+import de.flolang.matchyourgame.manager.DiscordHealthService;
 import net.dv8tion.jda.api.audit.ActionType;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
@@ -23,11 +24,16 @@ import java.util.concurrent.TimeUnit;
 public class GuildJoinListener extends ListenerAdapter {
     private static final Logger LOGGER = LoggerFactory.getLogger(GuildJoinListener.class);
     private static final int AUDIT_LOG_ATTEMPTS = 3;
+    private final DiscordHealthService health;
+
+    public GuildJoinListener(DiscordHealthService health) {
+        this.health = health;
+    }
 
     @Override
     public void onGuildJoin(GuildJoinEvent event) {
         Guild guild = event.getGuild();
-        resolveInstaller(guild, Instant.now(), 1);
+        health.handleGuildJoin(guild, () -> resolveInstaller(guild, Instant.now(), 1));
     }
 
     private void resolveInstaller(Guild guild, Instant joinedAt, int attempt) {

@@ -18,6 +18,7 @@ public class UserObject {
     private long createGuild;
     private UserRole role;
     private boolean anonymized;
+    private boolean active;
 
     public String getUsername() {
         return anonymized ? "Anonymisierter Benutzer" : username;

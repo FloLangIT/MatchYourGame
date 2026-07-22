@@ -30,6 +30,7 @@ public class UserRepository {
                 }
                 addColumnIfMissing(conn, "role", "VARCHAR(16) NOT NULL DEFAULT 'USER'");
                 addColumnIfMissing(conn, "anonymized", "BOOLEAN NOT NULL DEFAULT FALSE");
+                addColumnIfMissing(conn, "active", "BOOLEAN NOT NULL DEFAULT TRUE");
                 LOGGER.info("User table created if not exist");
         } catch (SQLException e) {
             LOGGER.error("Error while creating user table", e);
@@ -109,7 +110,7 @@ public class UserRepository {
 
     public static int activeCount() {
         try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(
-                "SELECT COUNT(*) FROM user WHERE anonymized=FALSE"); ResultSet rs = ps.executeQuery()) {
+                "SELECT COUNT(*) FROM user WHERE anonymized=FALSE AND active=TRUE"); ResultSet rs = ps.executeQuery()) {
             rs.next(); return rs.getInt(1);
         } catch (SQLException e) { LOGGER.error("Could not count active users", e); return 0; }
     }
@@ -216,6 +217,16 @@ public class UserRepository {
         } catch (SQLException e) { LOGGER.error("Could not update role for user {}", userId, e); return false; }
     }
 
+    public static boolean setActive(int userId, boolean active) {
+        try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(
+                "UPDATE user SET active=?,last_change_at=CURRENT_TIMESTAMP WHERE id=? AND anonymized=FALSE AND active<>?")) {
+            ps.setBoolean(1, active); ps.setInt(2, userId); ps.setBoolean(3, active);
+            boolean changed = ps.executeUpdate() == 1;
+            if (changed) UserCache.evictById(userId);
+            return changed;
+        } catch (SQLException e) { LOGGER.error("Could not update active state for user {}", userId, e); return false; }
+    }
+
     public static boolean anonymize(int userId) {
         UserObject old = get(userId);
         if (old == null || old.isAnonymized()) return false;
@@ -238,7 +249,7 @@ public class UserRepository {
         return new UserObject(rs.getInt("id"), rs.getString("username"),
                 Long.parseLong(rs.getString("discord_id")), Language.valueOf(rs.getString("language")),
                 rs.getTimestamp("created_at"), rs.getTimestamp("last_change_at"), rs.getLong("create_guild"),
-                role, rs.getBoolean("anonymized"));
+                role, rs.getBoolean("anonymized"), rs.getBoolean("active"));
     }
 
     private static void addColumnIfMissing(Connection conn, String column, String definition) throws SQLException {
