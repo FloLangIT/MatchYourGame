@@ -38,6 +38,7 @@ import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.selections.SelectOption;
 import net.dv8tion.jda.api.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageType;
 
 import java.util.HashMap;
 import java.util.ArrayList;
@@ -60,7 +61,12 @@ public class UserControlManager {
 
     public void loadStartPage() {
         if (!message.isPinned()) {
-            message.pin().queue();
+            message.pin().queue(ignored -> message.getChannel().getHistory().retrievePast(10).queue(messages ->
+                    messages.stream()
+                            .filter(candidate -> candidate.getType() == MessageType.CHANNEL_PINNED_ADD)
+                            .filter(candidate -> !candidate.getTimeCreated().isBefore(message.getTimeCreated()))
+                            .forEach(candidate -> candidate.delete().queue(null, deleteError -> {})),
+                    historyError -> {}));
         }
         HashMap<String, String> replacings = new HashMap<>();
         replacings.put("%userId%", String.valueOf(userObject.getId()));
@@ -177,6 +183,8 @@ public class UserControlManager {
                     Button.danger("lobbyClose-" + lobby.getId(), t("Lobby.Button.Close"))));
         } else if (host) {
             List<Button> actions = new ArrayList<>();
+            if (Main.lobbyService.canEditFullLobby(lobby))
+                actions.add(Button.primary("lobbySettings-" + lobby.getId(), t("Lobby.Button.Settings")));
             if (List.of(LobbyStatus.FORMING, LobbyStatus.READY, LobbyStatus.ACTIVE).contains(lobby.getStatus()))
                 actions.add(Button.primary("matchEntryOverview-" + lobby.getId(), t("Match.Button.Add")));
             actions.add(Button.danger("lobbyClose-" + lobby.getId(), t("Lobby.Button.Close")));

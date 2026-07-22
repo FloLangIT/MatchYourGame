@@ -90,9 +90,38 @@ public final class LobbyDiscordCoordinator {
     }
 
     public void prepareVoiceChannel(LobbyObject lobby) {
-        if (lobby == null || lobby.getVoiceChannelID() != 0 || !PROVISIONING.add(lobby.getId())) return;
+        if (lobby == null || !PROVISIONING.add(lobby.getId())) return;
+        if (lobby.getVoiceChannelID() != 0) {
+            prepareExistingVoiceChannel(lobby);
+            return;
+        }
         ATTEMPTED_PARTNER_GUILDS.put(lobby.getId(),ConcurrentHashMap.newKeySet());
         tryPartnerGuild(lobby,LobbyRepository.memberIds(lobby.getId()));
+    }
+
+    public void updateVoiceCapacity(LobbyObject lobby) {
+        if (lobby == null || lobby.getVoiceChannelID() == 0) return;
+        VoiceChannel channel = jda.getVoiceChannelById(lobby.getVoiceChannelID());
+        if (channel != null)
+            channel.getManager().setUserLimit(Math.min(lobby.getMaxPlayers(), VoiceChannel.MAX_USERLIMIT)).queue(null,
+                    error -> LOGGER.warn("Could not update user limit for lobby voice {}", lobby.getId(), error));
+    }
+
+    private void prepareExistingVoiceChannel(LobbyObject lobby) {
+        VoiceChannel channel = jda.getVoiceChannelById(lobby.getVoiceChannelID());
+        if (channel == null) {
+            PROVISIONING.remove(lobby.getId());
+            LOGGER.warn("Stored voice channel for lobby {} is no longer available", lobby.getId());
+            return;
+        }
+        LobbyRepository.beginExistingVoiceFormation(lobby.getId());
+        List<Integer> missing = LobbyRepository.missingInitialVoiceMembers(lobby.getId());
+        channel.getManager().setUserLimit(Math.min(lobby.getMaxPlayers(), VoiceChannel.MAX_USERLIMIT)).queue(
+                ignored -> grantVoicePermissionsSequentially(lobby, channel, missing, 0, 1),
+                error -> {
+                    LOGGER.warn("Could not update user limit for existing lobby voice {}", lobby.getId(), error);
+                    grantVoicePermissionsSequentially(lobby, channel, missing, 0, 1);
+                });
     }
 
     private void tryPartnerGuild(LobbyObject lobby,List<Integer> userIds){
@@ -118,7 +147,19 @@ public final class LobbyDiscordCoordinator {
                         EnumSet.noneOf(Permission.class))
                 .queue(channel -> {
             LobbyRepository.setVoiceChannel(lobby.getId(), target.guild.getIdLong(), channel.getIdLong());
-            grantVoicePermissionsSequentially(lobby, channel, userIds, 0, 1);
+            LobbyObject current = LobbyRepository.get(lobby.getId());
+            if (current != null)
+                channel.getManager().setUserLimit(Math.min(current.getMaxPlayers(), VoiceChannel.MAX_USERLIMIT))
+                        .queue(null, error -> LOGGER.warn("Could not update user limit for lobby voice {}",
+                                lobby.getId(), error));
+            if (current != null && LobbyRepository.memberCount(current.getId()) < current.getMaxPlayers()) {
+                LobbyRepository.reopenPreservingVoiceChannel(current.getId());
+                PROVISIONING.remove(current.getId());
+                ATTEMPTED_PARTNER_GUILDS.remove(current.getId());
+                refreshManagementMessages(LobbyRepository.get(current.getId()));
+                return;
+            }
+            grantVoicePermissionsSequentially(current == null ? lobby : current, channel, userIds, 0, 1);
         }, error -> {
                     LOGGER.error("Could not create voice channel for lobby {}", lobby.getId(), error);
                     PartnerGuildService.notifyManagerProblem(target.config,"PartnerProgram.Problems.VoiceCreate",
@@ -380,23 +421,44 @@ public final class LobbyDiscordCoordinator {
                         .queue()));
     }
 
-    public void notifyPassiveQueueExhausted(LobbyObject lobby) {
+    public void notifyPassiveQueueExhausted(LobbyObject lobby, LobbyObject mergeTarget) {
         int userId = lobby.getLeaderID();
         UserObject user = UserController.get(userId);
         if (user == null) return;
         int players = LobbyRepository.memberCount(lobby.getId());
+        java.util.Map<String, String> replacements = new java.util.HashMap<>();
+        replacements.put("%players%", String.valueOf(players));
+        if (mergeTarget != null) {
+            replacements.put("%game%", gameDisplayName(mergeTarget.getGameID()));
+            replacements.put("%playerCount%", String.valueOf(LobbyRepository.memberCount(mergeTarget.getId())));
+            replacements.put("%capacity%", String.valueOf(mergeTarget.getMaxPlayers()));
+            replacements.put("%platform%", mergeTarget.getPlatform());
+            replacements.put("%region%", mergeTarget.getRegion());
+            replacements.put("%playerList%", invitationPlayers(mergeTarget, userId));
+            replacements.put("%languages%", LobbyLanguageRepository.get(mergeTarget.getId()).stream()
+                    .map(code -> CommunicationLanguageNames.displayName(code, user.getLanguage()))
+                    .reduce((first, next) -> first + ", " + next)
+                    .orElse(t(userId, "Lobby.View.AnyLanguage")));
+            if (GameMessageVisibility.showsRanks(mergeTarget.getGameID()))
+                replacements.put("%ranks%", compatibleRankLabel(mergeTarget, userId));
+        }
+        String descriptionKey = mergeTarget == null ? "Lobby.PassiveQueue.Exhausted.Description"
+                : GameMessageVisibility.showsRanks(mergeTarget.getGameID())
+                ? "Lobby.PassiveQueue.Exhausted.DescriptionWithLobby"
+                : "Lobby.PassiveQueue.Exhausted.DescriptionWithLobbyNoRank";
+        List<Button> buttons = new java.util.ArrayList<>();
+        buttons.add(Button.success("lobbyStartCurrent-" + lobby.getId(),
+                t(userId, "Lobby.PassiveQueue.StartCurrent")).withDisabled(players < 2));
+        if (mergeTarget != null)
+            buttons.add(Button.primary("lobbyFindMerge-" + lobby.getId(),
+                    t(userId, "Lobby.PassiveQueue.FindMerge")));
+        buttons.add(Button.danger("lobbyDissolve-" + lobby.getId(),
+                t(userId, "Lobby.PassiveQueue.Dissolve")));
+        buttons.add(deleteButton(userId));
         jda.retrieveUserById(user.getDiscordID()).queue(discordUser -> discordUser.openPrivateChannel().queue(dm ->
                 dm.sendMessageEmbeds(new EmbedCreator().setTitle(t(userId, "Lobby.PassiveQueue.Exhausted.Title"))
-                                .setDescription(t(userId, "Lobby.PassiveQueue.Exhausted.Description", java.util.Map.of(
-                                        "%players%", String.valueOf(players)))).build())
-                        .setComponents(ActionRow.of(
-                                Button.success("lobbyStartCurrent-" + lobby.getId(),
-                                        t(userId, "Lobby.PassiveQueue.StartCurrent")).withDisabled(players < 2),
-                                Button.primary("lobbyFindMerge-" + lobby.getId(),
-                                        t(userId, "Lobby.PassiveQueue.FindMerge")),
-                                Button.danger("lobbyDissolve-" + lobby.getId(),
-                                        t(userId, "Lobby.PassiveQueue.Dissolve")),
-                                deleteButton(userId))).queue()));
+                                .setDescription(t(userId, descriptionKey, replacements)).build())
+                        .setComponents(ActionRow.of(buttons)).queue()));
     }
 
     public boolean isPassiveQueueAvailable(int userId) {
