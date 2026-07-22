@@ -734,10 +734,14 @@ Admin:
   Broadcast:
     Sent: "The broadcast was saved for **%count% users**. Delivery: **%delivery%**."
     Failed: "The broadcast could not be saved."
+    Language:
+      DE: "German"
+      EN: "English"
     Modal:
       Title: "Broadcast to all users"
       EmbedTitle: "Message title"
       Message: "Message"
+      Language: "Recipient language"
       Delivery: "Delivery method"
   ActiveLobbies:
     Title: "Active lobbies"
