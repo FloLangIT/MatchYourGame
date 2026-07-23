@@ -407,6 +407,7 @@ Lobby:
     Description: "The previous host did not join in time. You now host lobby #%lobbyId%."
   Voice:
     Title: "Lobby ready"
+    JoinButton: "Join VC"
     InviteUnavailable: "invite unavailable; contact the host"
     NoPartner:
       Title: "No partner guild available"

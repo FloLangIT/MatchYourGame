@@ -547,9 +547,14 @@ public final class LobbyDiscordCoordinator {
                             "%invite%", inviteUrl == null ? t(userId, "Lobby.Voice.InviteUnavailable") : inviteUrl,
                             "%channel%", voice.getName()))
                     : t(userId, "Lobby.Voice.ReadyMember", java.util.Map.of("%channel%", voice.getAsMention()));
+            String joinUrl = inviteUrl == null || inviteUrl.isBlank()
+                    ? "https://discord.com/channels/" + voice.getGuild().getId() + "/" + voice.getId()
+                    : inviteUrl;
             jda.retrieveUserById(user.getDiscordID()).queue(discordUser -> discordUser.openPrivateChannel().queue(dm ->
                     dm.sendMessageEmbeds(new EmbedCreator().setTitle(t(userId, "Lobby.Voice.Title")).setDescription(description).build())
-                            .setComponents(ActionRow.of(Button.danger("delete", t(userId, "General.Button.DeleteMessage"))))
+                            .setComponents(ActionRow.of(
+                                    Button.link(joinUrl, t(userId, "Lobby.Voice.JoinButton")),
+                                    Button.danger("delete", t(userId, "General.Button.DeleteMessage"))))
                             .queue(message -> LobbyRepository.storeVoiceReadyMessage(lobby.getId(), userId, message.getId()))));
         }
     }

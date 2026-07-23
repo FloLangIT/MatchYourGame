@@ -201,6 +201,9 @@ public class UserControlManager {
             if (!kickable.isEmpty()) rows.add(ActionRow.of(StringSelectMenu.create("lobbyKickMember-" + lobby.getId())
                     .setPlaceholder(t("Lobby.Kick.Select")).addOptions(kickable).build()));
         }
+        if (lobby.getVoiceInviteUrl() != null && !lobby.getVoiceInviteUrl().isBlank())
+            rows.add(ActionRow.of(Button.link(
+                    lobby.getVoiceInviteUrl(), t("Lobby.Voice.JoinButton"))));
         rows.add(ActionRow.of(
                 Button.danger("lobbyLeave-" + lobby.getId(), t("Lobby.Button.Leave")),
                 Button.primary("mainPage", t("UserProfile.Button.Back"))));

@@ -407,6 +407,7 @@ Lobby:
     Description: "Der vorherige Host ist nicht rechtzeitig beigetreten. Du leitest jetzt Lobby #%lobbyId%."
   Voice:
     Title: "Lobby ist bereit"
+    JoinButton: "VC beitreten"
     InviteUnavailable: "Einladung nicht verfügbar; kontaktiere den Host"
     NoPartner:
       Title: "Keine Partner-Guild verfügbar"
