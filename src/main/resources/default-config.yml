@@ -15,6 +15,17 @@ SQL:
   Username: "root"
   Password: ""
 
+GameAPIs:
+  OAuth:
+    BindAddress: "127.0.0.1"
+    CallbackPort: 8080
+    RedirectUri: "https://auth.matchyourgame.net/oauth2/riot-games"
+  Valorant:
+    ApiKey: "RGAPI-6c8cd190-84d1-47fe-821e-fecb4adca7b4"
+    RsoClientId: ""
+    RsoClientSecret: ""
+    RsoRouting: "europe"
+
 CreatedUserToBecomePartnerGuild: 30
 PartnerGuildUserCreations: 30
 

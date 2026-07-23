@@ -13,6 +13,9 @@ import de.flolang.matchyourgame.database.game.GameRepository;
 import de.flolang.matchyourgame.database.game.GameOption;
 import de.flolang.matchyourgame.database.game.GameOptionRepository;
 import de.flolang.matchyourgame.database.game.RankCompatibilityRepository;
+import de.flolang.matchyourgame.database.gameapi.GameApiRepository;
+import de.flolang.matchyourgame.gameapi.GameApiProvider;
+import de.flolang.matchyourgame.gameapi.GameApiRegistry;
 import de.flolang.matchyourgame.database.lobby.LobbyObject;
 import de.flolang.matchyourgame.database.lobby.LobbyStatus;
 import de.flolang.matchyourgame.database.lobby.LobbyRepository;
@@ -221,13 +224,29 @@ public class UserControlManager {
         int from = Math.min(page * 23, profiles.size());
         int to = Math.min(from + 23, profiles.size());
         List<GameProfile> displayed = profiles.subList(from, to);
-        String entries = displayed.stream().map(profile -> t(GameMessageVisibility.profileVariantKey(
+        String entries = displayed.stream().map(profile -> {
+            String entry = t(GameMessageVisibility.profileVariantKey(
                 "GameProfile.Manage.Entry", profile.gameId()), Map.of(
                         "%game%", gameDisplayName(profile.gameId()),
                         "%platform%", profile.platform(),
                         "%region%", profile.region(),
                         "%rank%", rankName(profile.gameId(), profile.rankValue()),
-                        "%role%", profile.preferredRole())))
+                        "%role%", profile.preferredRole()));
+            GameApiRepository.LinkedProfileAccount account = GameApiRepository.getAccount(
+                    userObject.getId(), profile.gameId(), profile.platform());
+            if (account != null) {
+                GameApiProvider provider = GameApiRegistry.get(account.providerId());
+                boolean accepted = provider != null
+                        && provider.acceptsAccountVerification(account.verification());
+                String status = !accepted ? t("GameProfile.API.ReverificationRequired")
+                        : account.verification() == GameApiProvider.AccountVerification.RIOT_ID_FALLBACK
+                        ? t("GameProfile.API.FallbackVerified") : t("GameProfile.API.RsoVerified");
+                entry += "\nAPI-Account: **" + account.displayName() + "** · " + status;
+            }
+            else if (GameApiRepository.providerId(profile.gameId()) != null)
+                entry += "\nAPI-Account: *" + t("GameProfile.API.NotLinked") + "*";
+            return entry;
+        })
                 .reduce((first, next) -> first + "\n\n" + next)
                 .orElse(t("GameProfile.Manage.None"));
         HashMap<String, String> replacements = new HashMap<>();
@@ -248,8 +267,15 @@ public class UserControlManager {
                         .withDisabled(page == 0),
                 Button.secondary("gameProfilesPage-" + Math.min(pages - 1, page + 1), t("General.Next"))
                         .withDisabled(page >= pages - 1)));
+        boolean apiLinkAvailable = profiles.stream().anyMatch(profile -> {
+            GameApiProvider provider = GameApiRegistry.get(GameApiRepository.providerId(profile.gameId()));
+            return provider != null && (provider.accountLoginConfigured()
+                    || provider.supportsManualAccountLink());
+        });
         rows.add(ActionRow.of(
                 Button.success("gameProfileConfigure", t("GameProfile.Manage.Configure")),
+                Button.secondary("gameApiLink", t("GameProfile.API.Button"))
+                        .withDisabled(!apiLinkAvailable),
                 Button.secondary("communicationLanguages", t("GameProfile.Manage.Languages")),
                 Button.primary("mainPage", t("UserProfile.Button.Back"))));
         message.editMessageEmbeds(LanguageManager.getEmbedForUser("GameProfile.Manage", userObject.getId(), replacements).build())

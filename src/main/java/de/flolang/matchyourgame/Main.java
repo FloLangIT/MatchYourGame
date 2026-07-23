@@ -9,6 +9,7 @@ import de.flolang.matchyourgame.database.game.GameStatDefinitionParser;
 import de.flolang.matchyourgame.database.game.GameStatRepository;
 import de.flolang.matchyourgame.database.game.GameOptionRepository;
 import de.flolang.matchyourgame.database.game.RankCompatibilityRepository;
+import de.flolang.matchyourgame.database.gameapi.GameApiRepository;
 import de.flolang.matchyourgame.database.profile.GameProfileRepository;
 import de.flolang.matchyourgame.database.profile.CommunicationLanguageRepository;
 import de.flolang.matchyourgame.database.guild.GuildRepository;
@@ -37,6 +38,8 @@ import de.flolang.matchyourgame.listener.user.*;
 import de.flolang.matchyourgame.manager.lobby.LobbyDiscordCoordinator;
 import de.flolang.matchyourgame.manager.lobby.LobbyService;
 import de.flolang.matchyourgame.manager.match.MatchService;
+import de.flolang.matchyourgame.manager.gameapi.GameApiService;
+import de.flolang.matchyourgame.manager.gameapi.GameApiOAuthServer;
 import de.flolang.matchyourgame.manager.review.ReviewService;
 import de.flolang.matchyourgame.manager.lobby.GameSelectionWizard;
 import de.flolang.matchyourgame.manager.DiscordHealthService;
@@ -68,6 +71,8 @@ public class Main {
     public static LobbyService lobbyService;
     public static ReviewService reviewService;
     public static MatchService matchService;
+    public static GameApiService gameApiService;
+    public static GameApiOAuthServer gameApiOAuthServer;
     public static GameSelectionWizard gameSelectionWizard;
     public static de.flolang.matchyourgame.manager.party.PartyService partyService;
     public static DiscordHealthService healthService;
@@ -110,6 +115,7 @@ public class Main {
         GameProfileRepository.init();
         CommunicationLanguageRepository.init();
         LobbyRepository.init();
+        GameApiRepository.init();
         PassiveQueueSettingsRepository.init();
         ReportRepository.init();
         BanRepository.init();
@@ -119,6 +125,10 @@ public class Main {
         lobbyService = new LobbyService(new LobbyDiscordCoordinator(jda));
         reviewService = new ReviewService(jda);
         matchService = new MatchService(jda);
+        gameApiService = new GameApiService();
+        gameApiService.autoMapAllRanks();
+        gameApiOAuthServer = new GameApiOAuthServer(gameApiService);
+        gameApiOAuthServer.start();
         gameSelectionWizard = new GameSelectionWizard();
         partyService = new de.flolang.matchyourgame.manager.party.PartyService();
         lobbyScheduler.scheduleWithFixedDelay(() -> {

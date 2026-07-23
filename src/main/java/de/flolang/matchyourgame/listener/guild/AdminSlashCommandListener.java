@@ -1,5 +1,6 @@
 package de.flolang.matchyourgame.listener.guild;
 
+import de.flolang.matchyourgame.Main;
 import de.flolang.matchyourgame.database.game.GameObject;
 import de.flolang.matchyourgame.database.game.GameRepository;
 import de.flolang.matchyourgame.database.game.GameStatDefinition;
@@ -136,6 +137,7 @@ public final class AdminSlashCommandListener extends ListenerAdapter {
         replaceIfProvided(game.getId(), GameOption.Type.RANK, event, "ranks");
         replaceIfProvided(game.getId(), GameOption.Type.ROLE, event, "roles");
         configureRankRulesIfProvided(game.getId(), event);
+        Main.gameApiService.autoMapRanks(game.getId());
         event.reply(t(event, "Admin.Game.Created", java.util.Map.of("%game%", game.getName(), "%gameId%",
                 String.valueOf(game.getId()), "%statistics%", String.valueOf(statistics.size())))).setEphemeral(true).queue();
     }
@@ -150,6 +152,7 @@ public final class AdminSlashCommandListener extends ListenerAdapter {
         changed += replaceIfProvided(gameId, GameOption.Type.RANK, event, "ranks");
         changed += replaceIfProvided(gameId, GameOption.Type.ROLE, event, "roles");
         changed += configureRankRulesIfProvided(gameId, event);
+        Main.gameApiService.autoMapRanks(gameId);
         if (changed == 0) throw new IllegalArgumentException("Gib mindestens eine Konfigurationsliste an.");
         event.reply(t(event, "Admin.Game.Configured", java.util.Map.of("%game%", game.getName()))).setEphemeral(true).queue();
     }
