@@ -125,6 +125,72 @@ public final class RankCompatibilityRepository {
         }
     }
 
+    /**
+     * Returns an editable specification for the effective compatibility rules.
+     * Two-rank groups are used so saving the generated text recreates the exact
+     * relation without accidentally making overlapping groups transitive.
+     */
+    public static String getGroupSpecification(int gameId) {
+        try {
+            int owner = ruleOwner(gameId);
+            String sql = "SELECT s.id source_id,s.name source_name,t.id target_id,t.name target_name " +
+                    "FROM game_rank_compatibility c " +
+                    "JOIN game_option s ON s.id=c.source_rank_id " +
+                    "JOIN game_option t ON t.id=c.target_rank_id " +
+                    "WHERE c.game_id=? ORDER BY s.sort_order,t.sort_order";
+            Set<String> seen = new HashSet<>();
+            List<String> groups = new ArrayList<>();
+            try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, owner);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        int sourceId = rs.getInt("source_id"), targetId = rs.getInt("target_id");
+                        String key = Math.min(sourceId, targetId) + ":" + Math.max(sourceId, targetId);
+                        if (seen.add(key))
+                            groups.add(rs.getString("source_name") + "|" + rs.getString("target_name"));
+                    }
+                }
+            }
+            return groups.isEmpty() ? "-" : String.join(";", groups);
+        } catch (SQLException e) {
+            LOGGER.error("Could not serialize rank compatibility for game {}", gameId, e);
+            return "-";
+        }
+    }
+
+    public static boolean inheritsGroups(int gameId) {
+        GameObject game = GameRepository.get(gameId);
+        if (game == null || game.getSubGameFrom() == null) return false;
+        try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(
+                "SELECT 1 FROM game_rank_rule_override WHERE game_id=?")) {
+            ps.setInt(1, gameId);
+            try (ResultSet rs = ps.executeQuery()) { return !rs.next(); }
+        } catch (SQLException e) {
+            LOGGER.error("Could not check rank-rule inheritance for game {}", gameId, e);
+            return false;
+        }
+    }
+
+    public static void clearGroupOverride(int gameId) {
+        try (Connection conn = Database.getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement rules = conn.prepareStatement(
+                    "DELETE FROM game_rank_compatibility WHERE game_id=?");
+                 PreparedStatement override = conn.prepareStatement(
+                         "DELETE FROM game_rank_rule_override WHERE game_id=?")) {
+                rules.setInt(1, gameId); rules.executeUpdate();
+                override.setInt(1, gameId); override.executeUpdate();
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback(); throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("Rank compatibility inheritance could not be restored", e);
+        }
+    }
+
     public static void setUnrestrictedPartySize(int gameId, Integer partySize) {
         if (partySize != null && partySize < 2) throw new IllegalArgumentException("Unrestricted party size must be at least 2");
         try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(
@@ -146,6 +212,26 @@ public final class RankCompatibilityRepository {
         } catch (SQLException | IllegalStateException e) {
             LOGGER.error("Could not load unrestricted party size for game {}", gameId, e);
             return null;
+        }
+    }
+
+    public static boolean inheritsUnrestrictedPartySize(int gameId) {
+        GameObject game = GameRepository.get(gameId);
+        if (game == null || game.getSubGameFrom() == null) return false;
+        try {
+            return !directUnrestrictedPartySize(gameId).found();
+        } catch (SQLException e) {
+            LOGGER.error("Could not check unrestricted rank-rule inheritance for game {}", gameId, e);
+            return false;
+        }
+    }
+
+    public static void clearUnrestrictedPartySizeOverride(int gameId) {
+        try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(
+                "DELETE FROM game_rank_settings WHERE game_id=?")) {
+            ps.setInt(1, gameId); ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Unrestricted party-size inheritance could not be restored", e);
         }
     }
 

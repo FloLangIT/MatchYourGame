@@ -2,6 +2,7 @@ package de.flolang.matchyourgame.manager.match;
 
 import de.flolang.matchyourgame.database.game.GameStatDefinition;
 import de.flolang.matchyourgame.database.game.GameStatRepository;
+import de.flolang.matchyourgame.database.gameapi.GameApiRepository;
 import de.flolang.matchyourgame.database.lobby.*;
 import de.flolang.matchyourgame.database.match.MatchRepository;
 import de.flolang.matchyourgame.database.user.UserController;
@@ -266,9 +267,15 @@ public final class MatchService {
 
     public List<ActionRow> activeEntryComponents(int lobbyId, int userId, Integer matchId, String nextLabel) {
         List<ActionRow> rows = new ArrayList<>();
-        if (matchId == null) rows.add(ActionRow.of(
-                Button.primary("matchAdd-" + lobbyId, t(userId, "Match.Button.AddAnother")),
-                Button.secondary("matchBackToLobby-" + lobbyId, t(userId, "Match.Button.BackToLobby"))));
+        if (matchId == null) {
+            List<Button> buttons = new ArrayList<>();
+            buttons.add(Button.primary("matchAdd-" + lobbyId, t(userId, "Match.Button.AddAnother")));
+            LobbyObject lobby = LobbyRepository.get(lobbyId);
+            if (lobby != null && GameApiRepository.providerId(lobby.getGameID()) != null)
+                buttons.add(Button.secondary("matchApiImport-" + lobbyId, t(userId, "Match.API.Import")));
+            buttons.add(Button.secondary("matchBackToLobby-" + lobbyId, t(userId, "Match.Button.BackToLobby")));
+            rows.add(ActionRow.of(buttons));
+        }
         else rows.add(ActionRow.of(
                 Button.primary("matchNext-" + matchId, nextLabel),
                 Button.secondary("matchBackToLobby-" + lobbyId, t(userId, "Match.Button.BackToLobby"))));
@@ -307,9 +314,13 @@ public final class MatchService {
     }
 
     public List<ActionRow> hostEntryComponents(int lobbyId, int userId) {
-        return List.of(ActionRow.of(
-                Button.primary("matchAdd-" + lobbyId, t(userId, "Match.Button.AddAnother")),
-                Button.success("matchDone-" + lobbyId, t(userId, "Match.Button.Done"))));
+        LobbyObject lobby = LobbyRepository.get(lobbyId);
+        List<Button> buttons = new ArrayList<>();
+        buttons.add(Button.primary("matchAdd-" + lobbyId, t(userId, "Match.Button.AddAnother")));
+        if (lobby != null && GameApiRepository.providerId(lobby.getGameID()) != null)
+            buttons.add(Button.secondary("matchApiImport-" + lobbyId, t(userId, "Match.API.Import")));
+        buttons.add(Button.success("matchDone-" + lobbyId, t(userId, "Match.Button.Done")));
+        return List.of(ActionRow.of(buttons));
     }
 
     public List<MessageEmbed> reviewEmbeds(int lobbyId, int userId) {

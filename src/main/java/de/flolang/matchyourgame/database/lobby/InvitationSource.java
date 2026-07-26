@@ -1,5 +1,5 @@
 package de.flolang.matchyourgame.database.lobby;
 
 public enum InvitationSource {
-    FRIEND, CLAN, PASSIVE_QUEUE
+    FRIEND, CLAN, PASSIVE_QUEUE, HISTORY
 }

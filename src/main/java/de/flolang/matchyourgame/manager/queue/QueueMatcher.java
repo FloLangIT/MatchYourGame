@@ -23,6 +23,18 @@ public final class QueueMatcher {
                 && rankCompatible(lobby, profile);
     }
 
+    public static boolean matches(SearchProfile source, SearchProfile candidate) {
+        return profileFiltersMatch(source, candidate)
+                && profileRanksCompatible(source, candidate);
+    }
+
+    public static boolean profileFiltersMatch(SearchProfile source, SearchProfile candidate) {
+        return source.gameId() == candidate.gameId()
+                && compatible(source.platform(), candidate.platform())
+                && compatible(source.region(), candidate.region())
+                && compatible(source.preferredRole(), candidate.preferredRole());
+    }
+
     public static List<QueueCandidate> rank(LobbyObject lobby, List<QueueCandidate> candidates, Instant now) {
         return candidates.stream().filter(candidate -> matches(lobby, candidate.profile()))
                 .sorted(Comparator.comparingDouble((QueueCandidate candidate) -> score(lobby, candidate, now)).reversed()
@@ -63,6 +75,13 @@ public final class QueueMatcher {
         if (lobby.getRankMin() == lobby.getRankMax())
             return RankCompatibilityRepository.isCompatible(lobby.getGameID(), lobby.getRankMin(), profile.rankValue());
         return profile.rankValue() >= lobby.getRankMin() && profile.rankValue() <= lobby.getRankMax();
+    }
+
+    private static boolean profileRanksCompatible(SearchProfile source, SearchProfile candidate) {
+        GameObject game = GameController.get(source.gameId());
+        return game != null && !game.isSkillbased()
+                || RankCompatibilityRepository.isCompatible(
+                        source.gameId(), source.rankValue(), candidate.rankValue());
     }
 
     public static boolean usesRankRules(LobbyObject lobby) {

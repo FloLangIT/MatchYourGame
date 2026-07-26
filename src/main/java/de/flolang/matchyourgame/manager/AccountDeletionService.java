@@ -3,6 +3,7 @@ package de.flolang.matchyourgame.manager;
 import de.flolang.matchyourgame.Main;
 import de.flolang.matchyourgame.database.Database;
 import de.flolang.matchyourgame.database.friend.FriendRepository;
+import de.flolang.matchyourgame.database.block.BlockRepository;
 import de.flolang.matchyourgame.database.lobby.ClanRepository;
 import de.flolang.matchyourgame.database.lobby.LobbyObject;
 import de.flolang.matchyourgame.database.lobby.LobbyRepository;
@@ -36,6 +37,7 @@ public final class AccountDeletionService {
         }
         ClanRepository.leaveAll(user.getId());
         FriendRepository.deleteAllForUser(user.getId());
+        BlockRepository.deleteAllForUser(user.getId());
         removePersonalConfiguration(user.getId());
         boolean changed = UserRepository.anonymize(user.getId());
         if (changed) {

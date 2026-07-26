@@ -87,6 +87,41 @@ public final class GameProfileRepository {
         return profiles;
     }
 
+    public static boolean delete(int userId, int gameId, String platform) {
+        try (Connection conn = Database.getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement searchProfile = conn.prepareStatement(
+                    "DELETE FROM search_profile WHERE user_id=? AND game_id=? AND platform=?");
+                 PreparedStatement gameProfile = conn.prepareStatement(
+                         "DELETE FROM game_profile WHERE user_id=? AND game_id=? AND platform=?")) {
+                searchProfile.setInt(1, userId);
+                searchProfile.setInt(2, gameId);
+                searchProfile.setString(3, platform);
+                searchProfile.executeUpdate();
+
+                gameProfile.setInt(1, userId);
+                gameProfile.setInt(2, gameId);
+                gameProfile.setString(3, platform);
+                boolean deleted = gameProfile.executeUpdate() == 1;
+                if (!deleted) {
+                    conn.rollback();
+                    return false;
+                }
+                conn.commit();
+                return true;
+            } catch (SQLException exception) {
+                conn.rollback();
+                throw exception;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (SQLException exception) {
+            LOGGER.error("Could not delete game profile for user {}, game {}, platform {}",
+                    userId, gameId, platform, exception);
+            return false;
+        }
+    }
+
     private static void migratePrimaryKey(Connection conn, Statement statement) throws SQLException {
         Set<String> columns = new HashSet<>();
         try (ResultSet keys = conn.getMetaData().getPrimaryKeys(conn.getCatalog(), null, "game_profile")) {

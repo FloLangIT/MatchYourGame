@@ -14,6 +14,7 @@ import de.flolang.matchyourgame.manager.UserControlManager;
 import de.flolang.matchyourgame.manager.ManagementMessageUpdater;
 import de.flolang.matchyourgame.manager.lobby.LobbyJoinResult;
 import de.flolang.matchyourgame.manager.match.MatchService;
+import de.flolang.matchyourgame.manager.gameapi.GameApiService;
 import de.flolang.matchyourgame.manager.party.PartyService;
 import de.flolang.matchyourgame.manager.lobby.GameSelectionWizard;
 import de.flolang.matchyourgame.manager.lobby.LobbyCapacityRules;
@@ -39,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 public final class LobbyInteractionListener extends ListenerAdapter {
@@ -68,9 +70,9 @@ public final class LobbyInteractionListener extends ListenerAdapter {
             event.deferEdit().queue();
             new UserControlManager(event.getMessage(), user).loadCommunicationLanguagesPage();
         } else if (id.equals("communicationLanguageAdd")) {
-            event.replyModal(Modal.create("communicationLanguageAdd", t(user.getId(), "GameProfile.Languages.Modal.Title"))
-                    .addComponents(input(t(user.getId(), "GameProfile.Languages.Modal.Language"), "language", "DE", true),
-                            input(t(user.getId(), "GameProfile.Languages.Modal.Priority"), "priority", "1", true)).build()).queue();
+            event.deferEdit().queue();
+            new UserControlManager(event.getMessage(), user)
+                    .loadCommunicationLanguagePicker(false, 0);
         } else if (id.startsWith("gameProfileChanged-")) {
             Main.gameSelectionWizard.startProfileUpdate(event, user, suffix(id));
         } else if (id.startsWith("gameProfileUnchanged-")) {
@@ -242,6 +244,26 @@ public final class LobbyInteractionListener extends ListenerAdapter {
                                 t(user.getId(), "Match.Participants.Description"))).setContent(null)
                         .setComponents(Main.matchService.participantSelectionComponents(session, user.getId(), true)).queue();
             }
+        } else if (id.startsWith("matchApiImport-")) {
+            int lobbyId = suffix(id);
+            event.deferEdit().queue(hook -> CompletableFuture.supplyAsync(() -> {
+                try { return Main.gameApiService.startImport(lobbyId, user.getId()); }
+                catch (de.flolang.matchyourgame.gameapi.GameApiException exception) {
+                    throw new java.util.concurrent.CompletionException(exception);
+                }
+            }).whenComplete((session, error) -> {
+                if (error != null) {
+                    Throwable cause = error.getCause() == null ? error : error.getCause();
+                    hook.editOriginal(t(user.getId(), "Match.API.Error",
+                            Map.of("%error%", String.valueOf(cause.getMessage()))))
+                            .setEmbeds().setComponents(Main.matchService.hostEntryComponents(lobbyId, user.getId())).queue();
+                } else if (session.importedCount() >= 0) {
+                    showApiImportComplete(hook, lobbyId, user.getId(), session.importedCount());
+                } else {
+                    hook.editOriginalEmbeds(apiMappingEmbed(session, user.getId()))
+                            .setContent(null).setComponents(apiMappingComponents(session, user.getId())).queue();
+                }
+            }));
         } else if (id.startsWith("matchNext-")) {
             int matchId = suffix(id);
             List<MatchService.StatTask> tasks = Main.matchService.nextBatch(matchId, user.getId());
@@ -281,6 +303,19 @@ public final class LobbyInteractionListener extends ListenerAdapter {
         if (event.getValues().isEmpty()) return;
         UserObject user = UserController.get(event.getUser().getIdLong());
         if (user == null) return;
+        if (event.getComponentId().startsWith("communicationLanguageRemove-")) {
+            int page = suffix(event.getComponentId());
+            boolean deleted = de.flolang.matchyourgame.database.profile.CommunicationLanguageRepository.delete(
+                    user.getId(), event.getValues().getFirst());
+            if (!deleted) {
+                event.reply(t(user.getId(), "GameProfile.Languages.RemoveFailed"))
+                        .setEphemeral(true).queue();
+                return;
+            }
+            event.deferEdit().queue();
+            new UserControlManager(event.getMessage(), user).loadCommunicationLanguagesPage(false, page);
+            return;
+        }
         if (event.getComponentId().startsWith("matchBatchEdit-")) {
             int matchId;
             try { matchId = Integer.parseInt(event.getValues().getFirst()); }
@@ -316,6 +351,35 @@ public final class LobbyInteractionListener extends ListenerAdapter {
                             t(user.getId(), "Match.Participants.Saved"))).setContent(null)
                     .setComponents(Main.matchService.activeEntryComponents(session.lobbyId(), user.getId(), matchId,
                             t(user.getId(), "Match.Button.EnterStats"))).queue();
+            return;
+        }
+        if (event.getComponentId().startsWith("matchApiPlayer-")) {
+            int lobbyId = suffix(event.getComponentId());
+            GameApiService.ImportSession session = Main.gameApiService.getImport(lobbyId, user.getId());
+            if (session == null) {
+                event.reply(t(user.getId(), "Match.SessionUnavailable")).setEphemeral(true).queue(); return;
+            }
+            try {
+                if (!Main.gameApiService.mapNext(lobbyId, user.getId(), event.getValues().getFirst())) {
+                    event.reply(t(user.getId(), "Match.API.MappingInvalid")).setEphemeral(true).queue(); return;
+                }
+                if (session.importedCount() >= 0) {
+                    LobbyObject lobby = LobbyRepository.get(lobbyId);
+                    boolean closed = lobby != null && lobby.getStatus() == LobbyStatus.CLOSED;
+                    if (closed) event.editMessageEmbeds(Main.matchService.closureSummary(lobbyId, user.getId()))
+                            .setContent(t(user.getId(), "Match.API.Imported",
+                                    Map.of("%count%", String.valueOf(session.importedCount()))))
+                            .setComponents(Main.matchService.hostEntryComponents(lobbyId, user.getId())).queue();
+                    else event.editMessageEmbeds(Main.matchService.activeEntryEmbed(lobbyId, user.getId(),
+                                    t(user.getId(), "Match.API.Imported",
+                                            Map.of("%count%", String.valueOf(session.importedCount())))))
+                            .setContent(null).setComponents(Main.matchService.activeEntryComponents(lobbyId, user.getId())).queue();
+                } else event.editMessageEmbeds(apiMappingEmbed(session, user.getId())).setContent(null)
+                        .setComponents(apiMappingComponents(session, user.getId())).queue();
+            } catch (de.flolang.matchyourgame.gameapi.GameApiException exception) {
+                event.reply(t(user.getId(), "Match.API.Error", Map.of("%error%", exception.getMessage())))
+                        .setEphemeral(true).queue();
+            }
             return;
         }
         if (event.getComponentId().startsWith("matchPlayerStats-")) {
@@ -369,12 +433,7 @@ public final class LobbyInteractionListener extends ListenerAdapter {
         UserObject user = UserController.get(event.getUser().getIdLong());
         if (user == null) return;
         try {
-            if (id.equals("communicationLanguageAdd")) {
-                de.flolang.matchyourgame.database.profile.CommunicationLanguageRepository.upsert(user.getId(),
-                        value(event, "language"), integer(event, "priority"));
-                event.deferEdit().queue();
-                new UserControlManager(event.getMessage(), user).loadCommunicationLanguagesPage();
-            } else if (id.equals("browseLobbies")) {
+            if (id.equals("browseLobbies")) {
                 SearchProfile profile = SearchProfileRepository.get(user.getId(), integer(event, "game"));
                 List<LobbyObject> lobbies = Main.lobbyService.browse(profile);
                 if (lobbies.isEmpty()) {
@@ -710,6 +769,41 @@ public final class LobbyInteractionListener extends ListenerAdapter {
                 Button.success("matchDone-" + lobbyId, t(userId, "Match.Button.Done")));
     }
 
+    private static net.dv8tion.jda.api.entities.MessageEmbed apiMappingEmbed(
+            GameApiService.ImportSession session, int userId) {
+        GameApiService.MappingRequest request = session.nextRequest();
+        String warning = request.linkedAccountMissing()
+                ? t(userId, "Match.API.LinkedMismatch", Map.of("%account%", request.linkedAccountName()))
+                : t(userId, "Match.API.NotLinked");
+        return new EmbedCreator().setTitle(t(userId, "Match.API.MappingTitle"))
+                .setDescription(t(userId, "Match.API.MappingDescription", Map.of(
+                        "%user%", request.username(), "%warning%", warning,
+                        "%matches%", String.valueOf(session.matches().size())))).build();
+    }
+
+    private static List<ActionRow> apiMappingComponents(GameApiService.ImportSession session, int userId) {
+        List<SelectOption> options = session.candidates().stream()
+                .filter(candidate -> !session.mappings().containsValue(candidate.externalId()))
+                .limit(25).map(candidate -> SelectOption.of(trim(candidate.displayName(), 100),
+                        candidate.externalId())).toList();
+        if (options.isEmpty()) return List.of(ActionRow.of(
+                Button.secondary("matchBackToLobby-" + session.lobbyId(),
+                        t(userId, "Match.Button.BackToLobby"))));
+        return List.of(ActionRow.of(StringSelectMenu.create("matchApiPlayer-" + session.lobbyId())
+                .setPlaceholder(t(userId, "Match.API.SelectPlayer")).addOptions(options).build()));
+    }
+
+    private static void showApiImportComplete(net.dv8tion.jda.api.interactions.InteractionHook hook,
+                                              int lobbyId, int userId, int count) {
+        LobbyObject lobby = LobbyRepository.get(lobbyId);
+        String notice = t(userId, "Match.API.Imported", Map.of("%count%", String.valueOf(count)));
+        if (lobby != null && lobby.getStatus() == LobbyStatus.CLOSED)
+            hook.editOriginalEmbeds(Main.matchService.closureSummary(lobbyId, userId)).setContent(notice)
+                    .setComponents(Main.matchService.hostEntryComponents(lobbyId, userId)).queue();
+        else hook.editOriginalEmbeds(Main.matchService.activeEntryEmbed(lobbyId, userId, notice)).setContent(null)
+                .setComponents(Main.matchService.activeEntryComponents(lobbyId, userId)).queue();
+    }
+
     private static boolean canManageActiveMatches(LobbyObject lobby, int userId) {
         return lobby != null && lobby.getLeaderID() == userId
                 && List.of(LobbyStatus.FORMING, LobbyStatus.READY, LobbyStatus.ACTIVE).contains(lobby.getStatus());
@@ -734,7 +828,7 @@ public final class LobbyInteractionListener extends ListenerAdapter {
         var reply = event.reply(t(userId, "Lobby.JoinResult." + result.name())).setEphemeral(true);
         if (result == LobbyJoinResult.LANGUAGE_MISMATCH && lobbyId > 0) {
             List<SelectOption> options = LobbyLanguageRepository.get(lobbyId).stream().limit(25)
-                    .map(language -> SelectOption.of(CommunicationLanguageNames.displayName(language,
+                    .map(language -> SelectOption.of(CommunicationLanguageNames.displayNameWithFlag(language,
                             UserController.get(userId).getLanguage()), language)).toList();
             if (!options.isEmpty()) reply = reply.setComponents(ActionRow.of(
                     StringSelectMenu.create("lobbyAddLanguageJoin-" + lobbyId)

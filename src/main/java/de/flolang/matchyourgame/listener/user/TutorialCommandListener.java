@@ -16,7 +16,7 @@ public final class TutorialCommandListener extends ListenerAdapter {
     private static final Logger LOGGER = LoggerFactory.getLogger(TutorialCommandListener.class);
 
     public static void register(JDA jda) {
-        jda.upsertCommand(Commands.slash("tutorial", "MatchYourGame-Tutorial erneut per DM erhalten"))
+        jda.upsertCommand(Commands.slash("tutorial", "Tutorial in der bestehenden Management-Nachricht starten"))
                 .queue(command -> LOGGER.info("Registered global /tutorial command"),
                         error -> LOGGER.error("Could not register /tutorial", error));
     }
@@ -30,7 +30,12 @@ public final class TutorialCommandListener extends ListenerAdapter {
                     .setEphemeral(true).queue();
             return;
         }
-        TutorialManager.send(user);
-        event.reply(LanguageManager.getMessageForUser("Tutorial.Sent", user.getId())).setEphemeral(true).queue();
+        event.deferReply(true).queue(hook -> TutorialManager.restartExisting(user, result ->
+                hook.editOriginal(LanguageManager.getMessageForUser(switch (result) {
+                    case STARTED -> "Tutorial.Sent";
+                    case ACTIVE_PARTY -> "Tutorial.ActiveParty";
+                    case ACTIVE_LOBBY -> "Tutorial.ActiveLobby";
+                    case MESSAGE_NOT_FOUND -> "Tutorial.ManagementMessageMissing";
+                }, user.getId())).queue()));
     }
 }

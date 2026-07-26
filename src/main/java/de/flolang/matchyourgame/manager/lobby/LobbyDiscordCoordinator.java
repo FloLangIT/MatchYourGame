@@ -436,7 +436,7 @@ public final class LobbyDiscordCoordinator {
             replacements.put("%region%", mergeTarget.getRegion());
             replacements.put("%playerList%", invitationPlayers(mergeTarget, userId));
             replacements.put("%languages%", LobbyLanguageRepository.get(mergeTarget.getId()).stream()
-                    .map(code -> CommunicationLanguageNames.displayName(code, user.getLanguage()))
+                    .map(code -> CommunicationLanguageNames.displayNameWithFlag(code, user.getLanguage()))
                     .reduce((first, next) -> first + ", " + next)
                     .orElse(t(userId, "Lobby.View.AnyLanguage")));
             if (GameMessageVisibility.showsRanks(mergeTarget.getGameID()))
@@ -547,9 +547,14 @@ public final class LobbyDiscordCoordinator {
                             "%invite%", inviteUrl == null ? t(userId, "Lobby.Voice.InviteUnavailable") : inviteUrl,
                             "%channel%", voice.getName()))
                     : t(userId, "Lobby.Voice.ReadyMember", java.util.Map.of("%channel%", voice.getAsMention()));
+            String joinUrl = inviteUrl == null || inviteUrl.isBlank()
+                    ? "https://discord.com/channels/" + voice.getGuild().getId() + "/" + voice.getId()
+                    : inviteUrl;
             jda.retrieveUserById(user.getDiscordID()).queue(discordUser -> discordUser.openPrivateChannel().queue(dm ->
                     dm.sendMessageEmbeds(new EmbedCreator().setTitle(t(userId, "Lobby.Voice.Title")).setDescription(description).build())
-                            .setComponents(ActionRow.of(Button.danger("delete", t(userId, "General.Button.DeleteMessage"))))
+                            .setComponents(ActionRow.of(
+                                    Button.link(joinUrl, t(userId, "Lobby.Voice.JoinButton")),
+                                    Button.danger("delete", t(userId, "General.Button.DeleteMessage"))))
                             .queue(message -> LobbyRepository.storeVoiceReadyMessage(lobby.getId(), userId, message.getId()))));
         }
     }
@@ -589,7 +594,7 @@ public final class LobbyDiscordCoordinator {
         if (GameMessageVisibility.showsRanks(lobby.getGameID()))
             replacements.put("%ranks%", compatibleRankLabel(lobby, recipient.getId()));
         String languages = LobbyLanguageRepository.get(lobby.getId()).stream()
-                .map(code -> CommunicationLanguageNames.displayName(code, recipient.getLanguage()))
+                .map(code -> CommunicationLanguageNames.displayNameWithFlag(code, recipient.getLanguage()))
                 .reduce((first, next) -> first + ", " + next)
                 .orElse(t(recipient.getId(), "Lobby.View.AnyLanguage"));
         replacements.put("%languages%", languages);

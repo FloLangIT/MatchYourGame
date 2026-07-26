@@ -12,7 +12,6 @@ import de.flolang.matchyourgame.database.report.BanRepository;
 import de.flolang.matchyourgame.embed.EmbedCreator;
 import de.flolang.matchyourgame.language.Language;
 import de.flolang.matchyourgame.language.LanguageManager;
-import de.flolang.matchyourgame.manager.UserControlManager;
 import de.flolang.matchyourgame.manager.InboxService;
 import de.flolang.matchyourgame.manager.TutorialManager;
 import de.flolang.matchyourgame.logging.DiscordLogService;
@@ -124,10 +123,9 @@ public class CreateUserListener extends ListenerAdapter {
                     LanguageManager.getMessageForUser("Inbox.Welcome.Description", createdUser.getId()),
                     InboxMessageRepository.DeliveryMode.SILENT);
 
-            //Send user private control panel
+            // The setup tour owns this message until it hands over to the regular control panel.
             privateChannel.sendMessageEmbeds(new EmbedCreator().setTitle("Loading...").build()).queue(message -> {
-                new UserControlManager(message, createdUser).loadStartPage();
-                TutorialManager.send(privateChannel, createdUser);
+                TutorialManager.start(message, createdUser);
             });
             if(args.length == 2 && args[0].equals("setupGuild")) {
                 if (event.getMessage() != null) event.getMessage().delete().queue(ignored -> {}, ignored -> {});

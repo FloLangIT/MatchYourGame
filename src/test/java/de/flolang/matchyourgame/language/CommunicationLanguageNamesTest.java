@@ -12,4 +12,18 @@ class CommunicationLanguageNamesTest {
         assertEquals("German", CommunicationLanguageNames.displayName("DE", Language.EN));
         assertEquals("English", CommunicationLanguageNames.displayName("EN", Language.EN));
     }
+
+    @Test
+    void prefixesLocalizedNamesWithTheConfiguredFlag() {
+        assertEquals("🇩🇪 Deutsch",
+                CommunicationLanguageNames.displayNameWithFlag("DE", Language.DE));
+        assertEquals("🇬🇧 English",
+                CommunicationLanguageNames.displayNameWithFlag("EN", Language.EN));
+    }
+
+    @Test
+    void offersMoreThanOneDiscordSelectPage() {
+        org.junit.jupiter.api.Assertions.assertTrue(
+                CommunicationLanguageNames.supportedCodes().size() > 25);
+    }
 }
