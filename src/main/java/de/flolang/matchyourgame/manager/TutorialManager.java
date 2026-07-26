@@ -715,7 +715,7 @@ public final class TutorialManager {
 
     private static String communicationLanguages(UserObject user) {
         return CommunicationLanguageRepository.getForUser(user.getId()).stream()
-                .map(language -> CommunicationLanguageNames.displayName(language.code(), user.getLanguage()))
+                .map(language -> CommunicationLanguageNames.displayNameWithFlag(language.code(), user.getLanguage()))
                 .reduce((first, next) -> first + ", " + next)
                 .orElse(t(user, "Lobby.View.AnyLanguage"));
     }

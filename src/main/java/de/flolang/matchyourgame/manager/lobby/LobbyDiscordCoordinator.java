@@ -436,7 +436,7 @@ public final class LobbyDiscordCoordinator {
             replacements.put("%region%", mergeTarget.getRegion());
             replacements.put("%playerList%", invitationPlayers(mergeTarget, userId));
             replacements.put("%languages%", LobbyLanguageRepository.get(mergeTarget.getId()).stream()
-                    .map(code -> CommunicationLanguageNames.displayName(code, user.getLanguage()))
+                    .map(code -> CommunicationLanguageNames.displayNameWithFlag(code, user.getLanguage()))
                     .reduce((first, next) -> first + ", " + next)
                     .orElse(t(userId, "Lobby.View.AnyLanguage")));
             if (GameMessageVisibility.showsRanks(mergeTarget.getGameID()))
@@ -594,7 +594,7 @@ public final class LobbyDiscordCoordinator {
         if (GameMessageVisibility.showsRanks(lobby.getGameID()))
             replacements.put("%ranks%", compatibleRankLabel(lobby, recipient.getId()));
         String languages = LobbyLanguageRepository.get(lobby.getId()).stream()
-                .map(code -> CommunicationLanguageNames.displayName(code, recipient.getLanguage()))
+                .map(code -> CommunicationLanguageNames.displayNameWithFlag(code, recipient.getLanguage()))
                 .reduce((first, next) -> first + ", " + next)
                 .orElse(t(recipient.getId(), "Lobby.View.AnyLanguage"));
         replacements.put("%languages%", languages);

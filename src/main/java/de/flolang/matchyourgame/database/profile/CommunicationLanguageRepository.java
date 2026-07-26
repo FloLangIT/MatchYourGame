@@ -18,8 +18,16 @@ public final class CommunicationLanguageRepository {
         try (Connection conn = Database.getConnection(); Statement statement = conn.createStatement()) {
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS user_communication_language (" +
                     "user_id BIGINT NOT NULL,language_code VARCHAR(20) NOT NULL,priority INT NOT NULL DEFAULT 1," +
-                    "PRIMARY KEY (user_id,language_code),UNIQUE KEY uq_user_language_priority (user_id,priority)," +
+                    "PRIMARY KEY (user_id,language_code)," +
                     "FOREIGN KEY (user_id) REFERENCES user(id))");
+            boolean legacyPriorityIndex;
+            try (ResultSet indexes = statement.executeQuery(
+                    "SHOW INDEX FROM user_communication_language WHERE Key_name='uq_user_language_priority'")) {
+                legacyPriorityIndex = indexes.next();
+            }
+            if (legacyPriorityIndex)
+                statement.executeUpdate("ALTER TABLE user_communication_language " +
+                        "DROP INDEX uq_user_language_priority");
         } catch (SQLException e) { LOGGER.error("Could not initialize communication languages", e); }
     }
 
@@ -44,38 +52,49 @@ public final class CommunicationLanguageRepository {
         if (language == null || language.isBlank() || priority < 1) return false;
         String normalized = language.trim().toUpperCase();
         if (normalized.length() > 20) return false;
+        try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO user_communication_language (user_id,language_code,priority) VALUES (?,?,?) " +
+                        "ON DUPLICATE KEY UPDATE priority=VALUES(priority)")) {
+            ps.setInt(1, userId);
+            ps.setString(2, normalized);
+            ps.setInt(3, priority);
+            ps.executeUpdate();
+            return true;
+        } catch (SQLException e) { LOGGER.error("Could not save communication language", e); return false; }
+    }
+
+    public static boolean delete(int userId, String language) {
+        if (language == null || language.isBlank()) return false;
         try (Connection conn = Database.getConnection()) {
             conn.setAutoCommit(false);
-            try (PreparedStatement insert = conn.prepareStatement(
-                    "INSERT IGNORE INTO user_communication_language (user_id,language_code,priority) " +
-                            "SELECT ?,?,COALESCE(MAX(priority),0)+1 FROM user_communication_language WHERE user_id=?")) {
-                insert.setInt(1, userId); insert.setString(2, normalized); insert.setInt(3, userId);
-                insert.executeUpdate();
-
-                List<String> ordered = new ArrayList<>();
-                try (PreparedStatement select = conn.prepareStatement(
-                        "SELECT language_code FROM user_communication_language WHERE user_id=? ORDER BY priority,language_code")) {
-                    select.setInt(1, userId);
-                    try (ResultSet rs = select.executeQuery()) { while (rs.next()) ordered.add(rs.getString(1)); }
-                }
-                ordered.removeIf(normalized::equalsIgnoreCase);
-                ordered.add(Math.min(priority - 1, ordered.size()), normalized);
-
-                try (PreparedStatement moveAside = conn.prepareStatement(
-                        "UPDATE user_communication_language SET priority=-priority WHERE user_id=?");
-                     PreparedStatement reorder = conn.prepareStatement(
-                             "UPDATE user_communication_language SET priority=? WHERE user_id=? AND language_code=?")) {
-                    moveAside.setInt(1, userId); moveAside.executeUpdate();
-                    for (int index = 0; index < ordered.size(); index++) {
-                        reorder.setInt(1, index + 1); reorder.setInt(2, userId);
-                        reorder.setString(3, ordered.get(index)); reorder.addBatch();
+            try (PreparedStatement count = conn.prepareStatement(
+                    "SELECT language_code FROM user_communication_language WHERE user_id=? FOR UPDATE");
+                 PreparedStatement delete = conn.prepareStatement(
+                         "DELETE FROM user_communication_language WHERE user_id=? AND language_code=?")) {
+                count.setInt(1, userId);
+                try (ResultSet rs = count.executeQuery()) {
+                    int configured = 0;
+                    while (rs.next()) configured++;
+                    if (configured <= 1) {
+                        conn.rollback();
+                        return false;
                     }
-                    reorder.executeBatch();
                 }
-                conn.commit(); return true;
-            } catch (SQLException e) { conn.rollback(); throw e; }
-            finally { conn.setAutoCommit(true); }
-        } catch (SQLException e) { LOGGER.error("Could not save communication language", e); return false; }
+                delete.setInt(1, userId);
+                delete.setString(2, language.trim().toUpperCase());
+                boolean deleted = delete.executeUpdate() == 1;
+                conn.commit();
+                return deleted;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            LOGGER.error("Could not delete communication language", e);
+            return false;
+        }
     }
 
     public static boolean addAtEnd(int userId, String language) {

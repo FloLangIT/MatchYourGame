@@ -62,6 +62,81 @@ GuildManager:
     REJECTED: "Rejected – reapplication available"
     WITHDRAWN: "Withdrawn – reapplication available"
 
+History:
+  Match:
+    One: "match"
+    Other: "matches"
+  Games:
+    Title: "Past lobbies and matches"
+    Description: "First select the game whose history you want to view."
+    Entry: "%lobbies% lobbies · %matches% matches"
+    Empty: "You do not have any completed lobbies yet."
+    Select: "Select game"
+  Lobbies:
+    Title: "History · %game%"
+    Description: "Game: **%game%**\nTeammate filter: **%filter%**"
+    Entry: "%matches% matches · %platform% · %region%"
+    Empty: "No past lobbies were found for this filter."
+    Select: "Open lobby and matches"
+  Filter:
+    All: "All teammates"
+    Select: "Filter by teammate"
+    Shared: "%count% shared lobbies"
+    Previous: "Previous teammates"
+    Next: "More teammates"
+  Lobby:
+    Title: "Lobby #%lobby%"
+    Description: "Game: **%game%**\nCreated: %created%\nClosed: %closed%\nPlatform: **%platform%**\nRegion: **%region%**"
+    NoMatches: "No matches were entered for this lobby."
+    MatchTitle: "Match %number%"
+    MatchStatus: "Status: **%status%**"
+    MatchSelect: "View match details"
+    General: "General"
+  MatchDetail:
+    Title: "Match %number%"
+    Description: "Lobby: **#%lobby%**\nMatch: **%number%**\nStatus: **%status%**"
+    NoValues: "No additional values were saved for this match."
+  Member:
+    Select: "Select and manage a teammate"
+    Title: "%username%"
+    Description: "Actions for **%username%** from a shared lobby.\nBlock status: **%blockStatus%**"
+    Friend: "Send friend request"
+    FriendExists: "Already friends/requested"
+    Invite: "Invite to active lobby"
+    Block: "Block for PassiveQ"
+    BlockActive: "Active"
+    NotBlocked: "Not blocked"
+  CurrentMembers:
+    Title: "Manage lobby members"
+    Description: "Select a member from lobby **#%lobby%** · page %page%/%pages%."
+  Friend:
+    Result:
+      SENT: "The friend request was sent."
+      ACCEPTED_EXISTING: "The existing friend request was accepted."
+      ALREADY_FRIENDS: "You are already friends."
+      ALREADY_PENDING: "A friend request is already pending."
+      POLICY_RESTRICTED: "This user only accepts requests from friends of friends."
+      SELF: "You cannot send yourself a friend request."
+      UNAVAILABLE: "The friend request could not be sent."
+  Invite:
+    Result:
+      INVITED: "The lobby invitation was sent."
+      FRIENDSHIP_REQUIRED: "This action is unavailable."
+      RANK_MISMATCH: "The game profile rank does not match your lobby."
+      PROFILE_MISMATCH: "The user has no matching game profile for your lobby."
+      UNAVAILABLE: "The lobby invitation is unavailable or was already sent."
+  Block:
+    Title: "Block user for PassiveQ?"
+    Description: "Do you really want to block **%username%**?\n\nThe first block lasts **30 days**. If the same user is blocked again later, the block is **permanent**.\n\nWhile the block is active, PassiveQ will not put you in the same lobby."
+    Confirm: "Block"
+    Cancel: "Cancel"
+    Result:
+      TEMPORARY: "The user was blocked for 30 days."
+      PERMANENT: "The user was blocked permanently."
+      FAILED: "The user could not be blocked."
+  Action:
+    Unavailable: "This action is no longer available."
+
 CreateUser:
   title: "Find your perfect match"
   description: "Create your account for MatchYourGame to find perfect matches.\n\nMake sure the bot can send private messages to you.\nAfter creation, you can do anything over DM Chat with the bot."
@@ -86,10 +161,13 @@ CreateUser:
 
 UserProfile:
   title: "Your MYG profile"
-  description: "User ID: %userId%\nUsername: %username%\nCreated at: %createdAt%\nAverage rating: **%rating%**\nCommunication languages: %communicationLanguages%\nPassiveQ: **%passiveStatus%** (%passiveGamesLabel%)\nMessages: **%inboxNotice%**\n\nParty: %party%\nFriends active: %activeFriends%/%totalFriends%"
+  description: "User ID: %userId%\nUsername: %username%\nCreated at: %createdAt%\nAverage rating: **%rating%**\nCommunication languages: %communicationLanguages%\nPassiveQ: **%passiveStatus%** (%passiveGamesLabel%)\nReachable through PassiveQ: **%passiveReachable%**\nMessages: **%inboxNotice%**\n\nParty: %party%\nFriends active: %activeFriends%/%totalFriends%"
   PassiveGames:
     One: "1 game"
     Other: "%count% games"
+  PassiveReachable:
+    One: "1 player"
+    Other: "%count% players"
   Button:
     EditProfile: "Edit profile"
     PassiveQ: "PassiveQ configuration"
@@ -105,6 +183,7 @@ UserProfile:
     Friends: "Friends"
     Crews: "Crews"
     Report: "Report / feedback"
+    History: "Past lobbies"
     ProjectInvite: "Invite user"
     AdminUsers: "User management"
     AdminGuilds: "Guild management"
@@ -402,6 +481,7 @@ Lobby:
       FRIEND: "Direct invitation"
       CLAN: "Crew invitation"
       PASSIVE_QUEUE: "PassiveQ"
+      HISTORY: "Invite from a shared lobby"
   HostPromotion:
     Title: "You are the new lobby host"
     Description: "The previous host did not join in time. You now host lobby #%lobbyId%."
@@ -453,6 +533,7 @@ Lobby:
     PARTY_TOO_LARGE: "There are not enough free slots for your entire party."
     LANGUAGE_MISMATCH: "You currently do not speak any of the communication languages remaining in this lobby."
     ALREADY_MEMBER: "You are already a member of this lobby."
+    BLOCKED: "You cannot join this PassiveQ lobby because of an active block."
     DATABASE_ERROR: "A database error occurred while joining the lobby."
   Wizard:
     NoCommunicationLanguages: "Select at least one of your communication languages."
@@ -465,6 +546,7 @@ Lobby:
       Title: "Lobby communication languages"
       Description: "Select every language this lobby can use. The common intersection is reduced whenever a player joins."
       Select: "Select communication languages"
+      Done: "Finish selection"
     Expired: "This selection has expired. Start the assistant again."
     InvalidSelection: "This selection does not belong to the current step."
     LobbyExpired: "This lobby selection has expired."
@@ -562,11 +644,18 @@ GameProfile:
     ActiveLobby: "A game profile cannot be deleted while you are in an active lobby."
   Languages:
     title: "Your communication languages"
-    description: "The lower the priority number, the earlier you are considered for matching PassiveQ invitations.\n\n%languages%"
+    description: "The lower the priority number, the earlier you are considered for matching PassiveQ invitations. Multiple languages may have the same priority.\n\n%languages%"
     Add: "Add / prioritize language"
+    Remove: "Remove language"
+    RemoveFailed: "The language could not be removed. At least one communication language must remain."
+    Page: "Page %page%/%pages%"
+    Picker:
+      Title: "Select communication language"
+      Description: "Select a language · page %page%/%pages%."
+      Select: "Select language"
     Modal:
       Title: "Save communication language"
-      Language: "Language or language code"
+      Language: "Language"
       Priority: "Priority"
   AfterLobby:
     Title: "Did your game profile change?"

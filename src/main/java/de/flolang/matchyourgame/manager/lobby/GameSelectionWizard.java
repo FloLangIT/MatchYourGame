@@ -146,6 +146,28 @@ public final class GameSelectionWizard extends ListenerAdapter {
             handleProfileConfirmation(event, customId);
             return;
         }
+        if (customId.startsWith("lobbyLanguagesPage-") || customId.startsWith("lobbyLanguagesDone-")) {
+            String[] parts = customId.split("-");
+            UserObject user = UserController.get(event.getUser().getIdLong());
+            Session session = parts.length >= 2 ? sessions.get(parts[1]) : null;
+            if (user == null || session == null || session.userId != user.getId() || expired(session)) {
+                event.reply(user == null ? "Session expired" : t(user.getId(), "Lobby.Wizard.Expired"))
+                        .setEphemeral(true).queue();
+                return;
+            }
+            if (customId.startsWith("lobbyLanguagesDone-")) {
+                if (session.languages.isEmpty()) {
+                    event.reply(t(user.getId(), "Lobby.Wizard.NoCommunicationLanguages"))
+                            .setEphemeral(true).queue();
+                } else event.replyModal(capacityModal(session)).queue();
+            } else {
+                int page;
+                try { page = Integer.parseInt(parts[2]); }
+                catch (NumberFormatException exception) { page = 0; }
+                renderLobbyLanguages(event, session, page);
+            }
+            return;
+        }
         if (!customId.startsWith("lobbyRankRule-")) return;
         String[] parts = customId.split("-");
         UserObject user = UserController.get(event.getUser().getIdLong());
@@ -180,7 +202,11 @@ public final class GameSelectionWizard extends ListenerAdapter {
     public void onStringSelectInteraction(StringSelectInteractionEvent event) {
         String customId = event.getComponentId();
         if (customId.startsWith("lobbyLanguages-")) {
-            String token = customId.substring("lobbyLanguages-".length());
+            String[] parts = customId.split("-");
+            String token = parts.length >= 2 ? parts[1] : "";
+            int page;
+            try { page = parts.length >= 3 ? Integer.parseInt(parts[2]) : 0; }
+            catch (NumberFormatException exception) { page = 0; }
             Session session = sessions.get(token);
             UserObject user = UserController.get(event.getUser().getIdLong());
             if (session == null || user == null || session.userId != user.getId() || expired(session)) {
@@ -189,11 +215,23 @@ public final class GameSelectionWizard extends ListenerAdapter {
                                 : t(user.getId(), "Lobby.Wizard.Expired")).build()).setComponents().queue();
                 return;
             }
-            Set<String> allowed = CommunicationLanguageRepository.getForUser(user.getId()).stream()
+            List<CommunicationLanguage> configured = CommunicationLanguageRepository.getForUser(user.getId());
+            int from = Math.min(Math.max(0, page) * 25, configured.size());
+            int to = Math.min(from + 25, configured.size());
+            Set<String> pageCodes = configured.subList(from, to).stream()
                     .map(CommunicationLanguage::code).collect(java.util.stream.Collectors.toSet());
-            session.languages = event.getValues().stream().filter(allowed::contains).toList();
-            if (session.languages.isEmpty()) { renderError(event, session, "Lobby.Wizard.NoCommunicationLanguages"); return; }
-            event.replyModal(capacityModal(session)).queue();
+            List<String> selected = new ArrayList<>(session.languages);
+            selected.removeIf(pageCodes::contains);
+            event.getValues().stream().filter(pageCodes::contains).forEach(selected::add);
+            session.languages = configured.stream().map(CommunicationLanguage::code)
+                    .filter(selected::contains).toList();
+            if (configured.size() <= 25) {
+                if (session.languages.isEmpty()) {
+                    renderError(event, session, "Lobby.Wizard.NoCommunicationLanguages");
+                } else event.replyModal(capacityModal(session)).queue();
+            } else {
+                renderLobbyLanguages(event, session, page);
+            }
             return;
         }
         if (!customId.startsWith("gameWizard-")) return;
@@ -472,19 +510,51 @@ public final class GameSelectionWizard extends ListenerAdapter {
                 session.languages = List.of(languages.getFirst().code());
                 event.replyModal(capacityModal(session)).queue();
             } else {
-                List<SelectOption> options = languages.stream().limit(25)
-                        .map(language -> SelectOption.of(CommunicationLanguageNames.displayName(language.code(),
-                                UserController.get(session.userId).getLanguage()) + " · #" + language.priority(),
-                                language.code())).toList();
-                event.editMessageEmbeds(new EmbedCreator().setTitle(t(session.userId, "Lobby.Wizard.Languages.Title"))
-                                .setDescription(t(session.userId, "Lobby.Wizard.Languages.Description")).build())
-                        .setComponents(ActionRow.of(StringSelectMenu.create("lobbyLanguages-" + session.token)
-                                        .setPlaceholder(t(session.userId, "Lobby.Wizard.Languages.Select"))
-                                        .setMinValues(1).setMaxValues(options.size()).addOptions(options).build()),
-                                ActionRow.of(Button.primary("mainPage", t(session.userId, "UserProfile.Button.Back"))))
-                        .queue();
+                session.languages = new ArrayList<>();
+                renderLobbyLanguages(event, session, 0);
             }
         }
+    }
+
+    private static void renderLobbyLanguages(StringSelectInteractionEvent event, Session session, int page) {
+        var display = lobbyLanguagePage(session, page);
+        event.editMessageEmbeds(display.embed()).setComponents(display.rows()).queue();
+    }
+
+    private static void renderLobbyLanguages(ButtonInteractionEvent event, Session session, int page) {
+        var display = lobbyLanguagePage(session, page);
+        event.editMessageEmbeds(display.embed()).setComponents(display.rows()).queue();
+    }
+
+    private static LobbyLanguagePage lobbyLanguagePage(Session session, int requestedPage) {
+        List<CommunicationLanguage> languages = CommunicationLanguageRepository.getForUser(session.userId);
+        int pages = Math.max(1, (languages.size() + 24) / 25);
+        int page = Math.max(0, Math.min(requestedPage, pages - 1));
+        int from = Math.min(page * 25, languages.size());
+        int to = Math.min(from + 25, languages.size());
+        List<CommunicationLanguage> displayed = languages.subList(from, to);
+        List<SelectOption> options = displayed.stream().map(language ->
+                SelectOption.of(CommunicationLanguageNames.displayNameWithFlag(language.code(),
+                                UserController.get(session.userId).getLanguage()) + " · #" + language.priority(),
+                        language.code()).withDefault(session.languages.contains(language.code()))).toList();
+        List<ActionRow> rows = new ArrayList<>();
+        rows.add(ActionRow.of(StringSelectMenu.create("lobbyLanguages-" + session.token + "-" + page)
+                .setPlaceholder(t(session.userId, "Lobby.Wizard.Languages.Select"))
+                .setMinValues(0).setMaxValues(options.size()).addOptions(options).build()));
+        if (pages > 1) rows.add(ActionRow.of(
+                Button.secondary("lobbyLanguagesPage-" + session.token + "-" + Math.max(0, page - 1),
+                                t(session.userId, "General.Previous")).withDisabled(page == 0),
+                Button.secondary("lobbyLanguagesPage-" + session.token + "-"
+                                + Math.min(pages - 1, page + 1), t(session.userId, "General.Next"))
+                        .withDisabled(page >= pages - 1),
+                Button.success("lobbyLanguagesDone-" + session.token,
+                        t(session.userId, "Lobby.Wizard.Languages.Done"))));
+        rows.add(ActionRow.of(Button.primary("mainPage", t(session.userId, "UserProfile.Button.Back"))));
+        return new LobbyLanguagePage(new EmbedCreator()
+                .setTitle(t(session.userId, "Lobby.Wizard.Languages.Title"))
+                .setDescription(t(session.userId, "Lobby.Wizard.Languages.Description")
+                        + "\n\n" + t(session.userId, "GameProfile.Languages.Page", Map.of(
+                        "%page%", String.valueOf(page + 1), "%pages%", String.valueOf(pages)))).build(), rows);
     }
 
     private void handleProfileConfirmation(ButtonInteractionEvent event, String customId) {
@@ -827,6 +897,7 @@ public final class GameSelectionWizard extends ListenerAdapter {
     private record Choice(int id, String label) {}
     private record SelectionPage(net.dv8tion.jda.api.entities.MessageEmbed embed, StringSelectMenu menu,
                                  List<SelectOption> options) {}
+    private record LobbyLanguagePage(net.dv8tion.jda.api.entities.MessageEmbed embed, List<ActionRow> rows) {}
     private static final class Session {
         final String token; final int userId; final Flow flow; final Instant createdAt;
         int mainGameId; int modeId; GameOption platform; GameOption region; GameOption rank; GameOption role;

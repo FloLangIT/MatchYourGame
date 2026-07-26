@@ -7,6 +7,7 @@ import de.flolang.matchyourgame.database.profile.GameProfileRepository;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public final class SearchProfileRepository {
@@ -67,6 +68,27 @@ public final class SearchProfileRepository {
             try (ResultSet rs = ps.executeQuery()) { while (rs.next()) result.add(map(rs)); }
         } catch (SQLException e) {
             LOGGER.error("Could not load search profiles for user {}", userId, e);
+        }
+        return result;
+    }
+
+    public static List<SearchProfile> reachableProfilesForGames(List<Integer> gameIds) {
+        if (gameIds == null || gameIds.isEmpty()) return List.of();
+        String placeholders = String.join(",", Collections.nCopies(gameIds.size(), "?"));
+        String sql = "SELECT sp.* FROM search_profile sp " +
+                "LEFT JOIN passive_queue_settings settings ON settings.user_id=sp.user_id " +
+                "WHERE sp.game_id IN (" + placeholders + ") AND sp.passive_enabled=TRUE " +
+                "AND COALESCE(settings.enabled,TRUE)=TRUE " +
+                "AND (sp.last_invited_at IS NULL OR sp.last_invited_at<=DATE_SUB(CURRENT_TIMESTAMP,INTERVAL 15 MINUTE)) " +
+                "ORDER BY sp.user_id,sp.game_id,sp.platform";
+        List<SearchProfile> result = new ArrayList<>();
+        try (Connection conn = Database.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < gameIds.size(); i++) ps.setInt(i + 1, gameIds.get(i));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) result.add(map(rs));
+            }
+        } catch (SQLException exception) {
+            LOGGER.error("Could not load reachable PassiveQ profiles for games {}", gameIds, exception);
         }
         return result;
     }

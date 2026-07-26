@@ -86,6 +86,12 @@ public class UserControlManager {
         replacings.put("%passiveGamesLabel%", LanguageManager.getMessageForUser(
                 passiveGameCount == 1 ? "UserProfile.PassiveGames.One" : "UserProfile.PassiveGames.Other",
                 userObject.getId(), Map.of("%count%", String.valueOf(passiveGameCount))));
+        int reachablePassiveUsers = Main.lobbyService == null ? 0
+                : Main.lobbyService.reachablePassiveUsers(userObject.getId());
+        replacings.put("%passiveReachable%", LanguageManager.getMessageForUser(
+                reachablePassiveUsers == 1 ? "UserProfile.PassiveReachable.One"
+                        : "UserProfile.PassiveReachable.Other",
+                userObject.getId(), Map.of("%count%", String.valueOf(reachablePassiveUsers))));
         int totalFriends = FriendRepository.getAcceptedFriendIds(userObject.getId()).size();
         replacings.put("%party%", party == null
                 ? LanguageManager.getMessageForUser("UserProfile.PartyStatus.None", userObject.getId())
@@ -94,7 +100,7 @@ public class UserControlManager {
         replacings.put("%activeFriends%", String.valueOf(countActiveFriends()));
         replacings.put("%totalFriends%", String.valueOf(totalFriends));
         String communicationLanguages = CommunicationLanguageRepository.getForUser(userObject.getId()).stream()
-                .map(language -> CommunicationLanguageNames.displayName(language.code(), userObject.getLanguage()))
+                .map(language -> CommunicationLanguageNames.displayNameWithFlag(language.code(), userObject.getLanguage()))
                 .reduce((first, next) -> first + ", " + next).orElse("-");
         replacings.put("%communicationLanguages%", communicationLanguages);
         int inboxCount = InboxMessageRepository.count(userObject.getId(), false);
@@ -121,6 +127,8 @@ public class UserControlManager {
                         party == null ? "UserProfile.Button.PartyCreate" : "UserProfile.Button.PartyManage", userObject.getId()))));
         List<Button> finalRow = new ArrayList<>();
         finalRow.add(Button.danger("reportMenu", LanguageManager.getMessageForUser("UserProfile.Button.Report", userObject.getId())));
+        finalRow.add(Button.secondary("history", LanguageManager.getMessageForUser(
+                "UserProfile.Button.History", userObject.getId())));
         if (inboxCount > 0)
             finalRow.add((unreadInbox > 0 ? Button.success("inbox", LanguageManager.getMessageForUser(
                             "UserProfile.Button.InboxUnread", userObject.getId(), Map.of("%count%", String.valueOf(unreadInbox))))
@@ -162,7 +170,7 @@ public class UserControlManager {
         replacements.put("%platform%", lobby.getPlatform());
         replacements.put("%region%", lobby.getRegion());
         String languageLabel = de.flolang.matchyourgame.database.lobby.LobbyLanguageRepository.get(lobby.getId()).stream()
-                .map(code -> CommunicationLanguageNames.displayName(code, userObject.getLanguage()))
+                .map(code -> CommunicationLanguageNames.displayNameWithFlag(code, userObject.getLanguage()))
                 .reduce((first, next) -> first + ", " + next).orElse("");
         if (languageLabel.isBlank()) languageLabel = t("Lobby.View.AnyLanguage");
         replacements.put("%languages%", languageLabel);
@@ -193,14 +201,9 @@ public class UserControlManager {
             actions.add(Button.danger("lobbyClose-" + lobby.getId(), t("Lobby.Button.Close")));
             rows.add(ActionRow.of(actions));
         }
-        if (host) {
-            List<SelectOption> kickable = LobbyRepository.memberIds(lobby.getId()).stream()
-                    .filter(memberId -> memberId != userObject.getId()).map(UserController::get)
-                    .filter(java.util.Objects::nonNull).limit(25)
-                    .map(member -> SelectOption.of(member.getUsername(), String.valueOf(member.getId()))).toList();
-            if (!kickable.isEmpty()) rows.add(ActionRow.of(StringSelectMenu.create("lobbyKickMember-" + lobby.getId())
-                    .setPlaceholder(t("Lobby.Kick.Select")).addOptions(kickable).build()));
-        }
+        if (LobbyRepository.memberIds(lobby.getId()).stream().anyMatch(memberId -> memberId != userObject.getId()))
+            rows.add(ActionRow.of(Button.secondary("lobbyMemberActions-" + lobby.getId() + "-0",
+                    t("History.Member.Select"))));
         if (lobby.getVoiceInviteUrl() != null && !lobby.getVoiceInviteUrl().isBlank())
             rows.add(ActionRow.of(Button.link(
                     lobby.getVoiceInviteUrl(), t("Lobby.Voice.JoinButton"))));
@@ -287,19 +290,19 @@ public class UserControlManager {
 
     public void loadEditProfilePage() {
         String communicationLanguages = CommunicationLanguageRepository.getForUser(userObject.getId()).stream()
-                .map(language -> CommunicationLanguageNames.displayName(language.code(), userObject.getLanguage())
+                .map(language -> CommunicationLanguageNames.displayNameWithFlag(language.code(), userObject.getLanguage())
                         + " (#" + language.priority() + ")")
                 .reduce((first, next) -> first + ", " + next).orElse("-");
         FriendRequestPolicy policy = UserRepository.getFriendRequestPolicy(userObject.getId());
         HashMap<String, String> replacements = new HashMap<>();
         replacements.put("%username%", userObject.getUsername());
-        replacements.put("%messageLanguage%", CommunicationLanguageNames.displayName(
+        replacements.put("%messageLanguage%", CommunicationLanguageNames.displayNameWithFlag(
                 userObject.getLanguage().name(), userObject.getLanguage()));
         replacements.put("%communicationLanguages%", communicationLanguages);
         replacements.put("%friendRequestPolicy%", t("UserProfile.Edit.FriendRequests." + policy.name()));
 
         List<SelectOption> languages = java.util.Arrays.stream(de.flolang.matchyourgame.language.Language.values())
-                .map(language -> SelectOption.of(CommunicationLanguageNames.displayName(
+                .map(language -> SelectOption.of(CommunicationLanguageNames.displayNameWithFlag(
                                 language.name(), userObject.getLanguage()), language.name())
                         .withDefault(language == userObject.getLanguage())).toList();
         List<SelectOption> policies = java.util.Arrays.stream(FriendRequestPolicy.values())
@@ -320,22 +323,85 @@ public class UserControlManager {
     }
 
     public void loadCommunicationLanguagesPage() {
-        loadCommunicationLanguagesPage(false);
+        loadCommunicationLanguagesPage(false, 0);
     }
 
     public void loadCommunicationLanguagesPage(boolean returnToProfile) {
-        String languages = CommunicationLanguageRepository.getForUser(userObject.getId()).stream()
+        loadCommunicationLanguagesPage(returnToProfile, 0);
+    }
+
+    public void loadCommunicationLanguagesPage(boolean returnToProfile, int requestedPage) {
+        List<de.flolang.matchyourgame.database.profile.CommunicationLanguage> configured =
+                CommunicationLanguageRepository.getForUser(userObject.getId());
+        int pages = Math.max(1, (configured.size() + 19) / 20);
+        int page = Math.max(0, Math.min(requestedPage, pages - 1));
+        int from = Math.min(page * 20, configured.size());
+        int to = Math.min(from + 20, configured.size());
+        List<de.flolang.matchyourgame.database.profile.CommunicationLanguage> displayed =
+                configured.subList(from, to);
+        String languages = displayed.stream()
                 .map(language -> "**#" + language.priority() + "** · "
-                        + CommunicationLanguageNames.displayName(language.code(), userObject.getLanguage()))
+                        + CommunicationLanguageNames.displayNameWithFlag(
+                                language.code(), userObject.getLanguage()))
                 .reduce((first, next) -> first + "\n" + next).orElse("-");
         HashMap<String, String> replacements = new HashMap<>();
-        replacements.put("%languages%", languages);
+        replacements.put("%languages%", languages + "\n\n" + t("GameProfile.Languages.Page", Map.of(
+                "%page%", String.valueOf(page + 1), "%pages%", String.valueOf(pages))));
+        List<ActionRow> rows = new ArrayList<>();
+        if (configured.size() > 1) {
+            rows.add(ActionRow.of(StringSelectMenu.create(returnToProfile
+                            ? "profileCommunicationLanguageRemove-" + page
+                            : "communicationLanguageRemove-" + page)
+                    .setPlaceholder(t("GameProfile.Languages.Remove"))
+                    .addOptions(displayed.stream()
+                            .map(language -> SelectOption.of(
+                                    CommunicationLanguageNames.displayNameWithFlag(
+                                            language.code(), userObject.getLanguage())
+                                            + " · #" + language.priority(),
+                                    language.code()))
+                            .toList())
+                    .build()));
+        }
+        if (pages > 1) rows.add(ActionRow.of(
+                Button.secondary("communicationLanguagesPage-" + (returnToProfile ? 1 : 0) + "-"
+                                + Math.max(0, page - 1), t("General.Previous")).withDisabled(page == 0),
+                Button.secondary("communicationLanguagesPage-" + (returnToProfile ? 1 : 0) + "-"
+                                + Math.min(pages - 1, page + 1), t("General.Next"))
+                        .withDisabled(page >= pages - 1)));
+        rows.add(ActionRow.of(
+                Button.success(returnToProfile ? "profileCommunicationLanguageAdd" : "communicationLanguageAdd",
+                        t("GameProfile.Languages.Add")),
+                Button.primary(returnToProfile ? "editProfile" : "gameProfiles",
+                        t("UserProfile.Button.Back"))));
         message.editMessageEmbeds(LanguageManager.getEmbedForUser("GameProfile.Languages", userObject.getId(), replacements).build())
-                .setComponents(ActionRow.of(
-                        Button.success(returnToProfile ? "profileCommunicationLanguageAdd" : "communicationLanguageAdd",
-                                t("GameProfile.Languages.Add")),
-                        Button.primary(returnToProfile ? "editProfile" : "gameProfiles",
-                                t("UserProfile.Button.Back")))).queue();
+                .setComponents(rows).queue();
+    }
+
+    public void loadCommunicationLanguagePicker(boolean returnToProfile, int requestedPage) {
+        List<String> codes = CommunicationLanguageNames.supportedCodes();
+        int pages = Math.max(1, (codes.size() + 24) / 25);
+        int page = Math.max(0, Math.min(requestedPage, pages - 1));
+        int from = Math.min(page * 25, codes.size());
+        int to = Math.min(from + 25, codes.size());
+        List<ActionRow> rows = new ArrayList<>();
+        rows.add(ActionRow.of(StringSelectMenu.create("communicationLanguagePick-"
+                        + (returnToProfile ? 1 : 0) + "-" + page)
+                .setPlaceholder(t("GameProfile.Languages.Picker.Select"))
+                .addOptions(codes.subList(from, to).stream().map(code -> SelectOption.of(
+                        CommunicationLanguageNames.displayNameWithFlag(code, userObject.getLanguage()), code))
+                        .toList()).build()));
+        if (pages > 1) rows.add(ActionRow.of(
+                Button.secondary("communicationLanguagePickerPage-" + (returnToProfile ? 1 : 0) + "-"
+                                + Math.max(0, page - 1), t("General.Previous")).withDisabled(page == 0),
+                Button.secondary("communicationLanguagePickerPage-" + (returnToProfile ? 1 : 0) + "-"
+                                + Math.min(pages - 1, page + 1), t("General.Next"))
+                        .withDisabled(page >= pages - 1)));
+        rows.add(ActionRow.of(Button.primary("communicationLanguagesPage-"
+                + (returnToProfile ? 1 : 0) + "-0", t("UserProfile.Button.Back"))));
+        message.editMessageEmbeds(new EmbedCreator().setTitle(t("GameProfile.Languages.Picker.Title"))
+                        .setDescription(t("GameProfile.Languages.Picker.Description", Map.of(
+                                "%page%", String.valueOf(page + 1), "%pages%", String.valueOf(pages)))).build())
+                .setComponents(rows).queue();
     }
 
     public void loadFriendsMainPage() {

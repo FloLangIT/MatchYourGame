@@ -70,9 +70,9 @@ public final class LobbyInteractionListener extends ListenerAdapter {
             event.deferEdit().queue();
             new UserControlManager(event.getMessage(), user).loadCommunicationLanguagesPage();
         } else if (id.equals("communicationLanguageAdd")) {
-            event.replyModal(Modal.create("communicationLanguageAdd", t(user.getId(), "GameProfile.Languages.Modal.Title"))
-                    .addComponents(input(t(user.getId(), "GameProfile.Languages.Modal.Language"), "language", "DE", true),
-                            input(t(user.getId(), "GameProfile.Languages.Modal.Priority"), "priority", "1", true)).build()).queue();
+            event.deferEdit().queue();
+            new UserControlManager(event.getMessage(), user)
+                    .loadCommunicationLanguagePicker(false, 0);
         } else if (id.startsWith("gameProfileChanged-")) {
             Main.gameSelectionWizard.startProfileUpdate(event, user, suffix(id));
         } else if (id.startsWith("gameProfileUnchanged-")) {
@@ -303,6 +303,19 @@ public final class LobbyInteractionListener extends ListenerAdapter {
         if (event.getValues().isEmpty()) return;
         UserObject user = UserController.get(event.getUser().getIdLong());
         if (user == null) return;
+        if (event.getComponentId().startsWith("communicationLanguageRemove-")) {
+            int page = suffix(event.getComponentId());
+            boolean deleted = de.flolang.matchyourgame.database.profile.CommunicationLanguageRepository.delete(
+                    user.getId(), event.getValues().getFirst());
+            if (!deleted) {
+                event.reply(t(user.getId(), "GameProfile.Languages.RemoveFailed"))
+                        .setEphemeral(true).queue();
+                return;
+            }
+            event.deferEdit().queue();
+            new UserControlManager(event.getMessage(), user).loadCommunicationLanguagesPage(false, page);
+            return;
+        }
         if (event.getComponentId().startsWith("matchBatchEdit-")) {
             int matchId;
             try { matchId = Integer.parseInt(event.getValues().getFirst()); }
@@ -420,12 +433,7 @@ public final class LobbyInteractionListener extends ListenerAdapter {
         UserObject user = UserController.get(event.getUser().getIdLong());
         if (user == null) return;
         try {
-            if (id.equals("communicationLanguageAdd")) {
-                de.flolang.matchyourgame.database.profile.CommunicationLanguageRepository.upsert(user.getId(),
-                        value(event, "language"), integer(event, "priority"));
-                event.deferEdit().queue();
-                new UserControlManager(event.getMessage(), user).loadCommunicationLanguagesPage();
-            } else if (id.equals("browseLobbies")) {
+            if (id.equals("browseLobbies")) {
                 SearchProfile profile = SearchProfileRepository.get(user.getId(), integer(event, "game"));
                 List<LobbyObject> lobbies = Main.lobbyService.browse(profile);
                 if (lobbies.isEmpty()) {
@@ -820,7 +828,7 @@ public final class LobbyInteractionListener extends ListenerAdapter {
         var reply = event.reply(t(userId, "Lobby.JoinResult." + result.name())).setEphemeral(true);
         if (result == LobbyJoinResult.LANGUAGE_MISMATCH && lobbyId > 0) {
             List<SelectOption> options = LobbyLanguageRepository.get(lobbyId).stream().limit(25)
-                    .map(language -> SelectOption.of(CommunicationLanguageNames.displayName(language,
+                    .map(language -> SelectOption.of(CommunicationLanguageNames.displayNameWithFlag(language,
                             UserController.get(userId).getLanguage()), language)).toList();
             if (!options.isEmpty()) reply = reply.setComponents(ActionRow.of(
                     StringSelectMenu.create("lobbyAddLanguageJoin-" + lobbyId)

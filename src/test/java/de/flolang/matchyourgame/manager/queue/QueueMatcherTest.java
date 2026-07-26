@@ -72,6 +72,21 @@ class QueueMatcherTest {
         assertTrue(QueueMatcher.matches(lobby, profile(1, "PC", "EU", "DE", 999, "SUPPORT", null)));
     }
 
+    @Test
+    void matchesReachableProfilesAcrossCompatibleFilters() {
+        GameCache.add(new GameObject(1, 0, "Casual", false, true));
+        SearchProfile source = profile(1, "PC", "EU", "DE", 100, "SUPPORT", null);
+
+        assertTrue(QueueMatcher.matches(source,
+                profile(2, "PC", "EU", "EN", 999, "SUPPORT", null)));
+        assertTrue(QueueMatcher.matches(source,
+                profile(3, "ANY", "EU", "EN", 999, "ANY", null)));
+        assertFalse(QueueMatcher.matches(source,
+                profile(4, "PS5", "EU", "EN", 100, "SUPPORT", null)));
+        assertFalse(QueueMatcher.matches(source,
+                profile(5, "PC", "NA", "EN", 100, "SUPPORT", null)));
+    }
+
     @AfterEach
     void clearGameCache() {
         GameCache.remove(1);

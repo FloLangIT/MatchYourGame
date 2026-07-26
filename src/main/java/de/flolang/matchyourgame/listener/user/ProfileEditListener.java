@@ -13,6 +13,7 @@ import de.flolang.matchyourgame.database.user.UserObject;
 import de.flolang.matchyourgame.database.user.UserRepository;
 import de.flolang.matchyourgame.language.Language;
 import de.flolang.matchyourgame.language.LanguageManager;
+import de.flolang.matchyourgame.language.CommunicationLanguageNames;
 import de.flolang.matchyourgame.manager.UserControlManager;
 import net.dv8tion.jda.api.components.label.Label;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
@@ -48,10 +49,21 @@ public final class ProfileEditListener extends ListenerAdapter {
             event.deferEdit().queue();
             new UserControlManager(event.getMessage(), user).loadCommunicationLanguagesPage(true);
         } else if (id.equals("profileCommunicationLanguageAdd")) {
-            event.replyModal(Modal.create("profileCommunicationLanguageAdd",
-                            t(user, "GameProfile.Languages.Modal.Title"))
-                    .addComponents(input(t(user, "GameProfile.Languages.Modal.Language"), "language", "DE"),
-                            input(t(user, "GameProfile.Languages.Modal.Priority"), "priority", "1")).build()).queue();
+            event.deferEdit().queue();
+            new UserControlManager(event.getMessage(), user)
+                    .loadCommunicationLanguagePicker(true, 0);
+        } else if (id.startsWith("communicationLanguagePickerPage-")) {
+            String[] parts = id.split("-");
+            if (parts.length != 3) return;
+            event.deferEdit().queue();
+            new UserControlManager(event.getMessage(), user).loadCommunicationLanguagePicker(
+                    "1".equals(parts[1]), integer(parts[2]));
+        } else if (id.startsWith("communicationLanguagesPage-")) {
+            String[] parts = id.split("-");
+            if (parts.length != 3) return;
+            event.deferEdit().queue();
+            new UserControlManager(event.getMessage(), user).loadCommunicationLanguagesPage(
+                    "1".equals(parts[1]), integer(parts[2]));
         } else if (id.equals("gameApiLink")) {
             var profiles = GameProfileRepository.getForUser(user.getId()).stream().filter(profile -> {
                 var provider = GameApiRegistry.get(GameApiRepository.providerId(profile.gameId()));
@@ -91,6 +103,26 @@ public final class ProfileEditListener extends ListenerAdapter {
             UserRepository.setFriendRequestPolicy(user.getId(), policy);
             event.deferEdit().queue();
             new UserControlManager(event.getMessage(), user).loadEditProfilePage();
+        } else if (event.getComponentId().startsWith("profileCommunicationLanguageRemove-")) {
+            int page = integer(event.getComponentId().substring(
+                    "profileCommunicationLanguageRemove-".length()));
+            boolean deleted = CommunicationLanguageRepository.delete(
+                    user.getId(), event.getValues().getFirst());
+            if (!deleted) {
+                event.reply(t(user, "GameProfile.Languages.RemoveFailed"))
+                        .setEphemeral(true).queue();
+                return;
+            }
+            event.deferEdit().queue();
+            new UserControlManager(event.getMessage(), user).loadCommunicationLanguagesPage(true, page);
+        } else if (event.getComponentId().startsWith("communicationLanguagePick-")) {
+            String[] parts = event.getComponentId().split("-");
+            if (parts.length != 3 || event.getValues().isEmpty()) return;
+            String code = event.getValues().getFirst();
+            event.replyModal(Modal.create("communicationLanguageAddSelected-" + parts[1] + "-" + code,
+                            t(user, "GameProfile.Languages.Modal.Title"))
+                    .addComponents(input(t(user, "GameProfile.Languages.Modal.Priority"),
+                            "priority", "1")).build()).queue();
         } else if (event.getComponentId().equals("gameApiLoginProfile")) {
             String[] selected = event.getValues().getFirst().split("\\|", 2);
             if (selected.length != 2) return;
@@ -140,14 +172,17 @@ public final class ProfileEditListener extends ListenerAdapter {
             }
             event.deferEdit().queue();
             new UserControlManager(event.getMessage(), user).loadEditProfilePage();
-        } else if (event.getModalId().equals("profileCommunicationLanguageAdd")) {
+        } else if (event.getModalId().startsWith("communicationLanguageAddSelected-")) {
             try {
+                String[] parts = event.getModalId().split("-");
+                if (parts.length != 3) throw new IllegalArgumentException();
                 boolean saved = CommunicationLanguageRepository.upsert(user.getId(),
-                        event.getValue("language").getAsString(),
+                        parts[2],
                         Integer.parseInt(event.getValue("priority").getAsString()));
                 if (!saved) throw new IllegalArgumentException();
                 event.deferEdit().queue();
-                new UserControlManager(event.getMessage(), user).loadCommunicationLanguagesPage(true);
+                new UserControlManager(event.getMessage(), user)
+                        .loadCommunicationLanguagesPage("1".equals(parts[1]), 0);
             } catch (IllegalArgumentException exception) {
                 event.reply(t(user, "UserProfile.Edit.InvalidLanguage")).setEphemeral(true).queue();
             }
@@ -179,6 +214,11 @@ public final class ProfileEditListener extends ListenerAdapter {
     private static Label input(String label, String id, String placeholder) {
         return Label.of(label, TextInput.create(id, TextInputStyle.SHORT).setPlaceholder(placeholder)
                 .setRequired(true).setMaxLength(20).build());
+    }
+
+    private static int integer(String value) {
+        try { return Integer.parseInt(value); }
+        catch (NumberFormatException exception) { return 0; }
     }
 
     private static String t(UserObject user, String key) {

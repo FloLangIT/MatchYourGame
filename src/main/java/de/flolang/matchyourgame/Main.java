@@ -3,6 +3,7 @@ package de.flolang.matchyourgame;
 import de.flolang.matchyourgame.config.ConfigManager;
 import de.flolang.matchyourgame.database.Database;
 import de.flolang.matchyourgame.database.friend.FriendRepository;
+import de.flolang.matchyourgame.database.block.BlockRepository;
 import de.flolang.matchyourgame.database.game.GameRepository;
 import de.flolang.matchyourgame.database.game.GameStatDefinition;
 import de.flolang.matchyourgame.database.game.GameStatDefinitionParser;
@@ -108,6 +109,7 @@ public class Main {
         UserRepository.setFK();
         GuildRepository.setFK();
         FriendRepository.init();
+        BlockRepository.init();
         GameRepository.init();
         GameRepository.setFK();
         GameStatRepository.init();
@@ -250,6 +252,7 @@ public class Main {
         jda.addEventListener(new DeleteMessageListener());
         jda.addEventListener(new FriendRequestHandleListener());
         jda.addEventListener(new LobbyInteractionListener());
+        jda.addEventListener(new LobbyHistoryListener());
         jda.addEventListener(new FriendMenuListener());
         jda.addEventListener(new FriendActivityListener());
         jda.addEventListener(new ClearChatCommandListener());

@@ -2,6 +2,8 @@ package de.flolang.matchyourgame.manager.lobby;
 
 import de.flolang.matchyourgame.Main;
 import de.flolang.matchyourgame.database.friend.FriendRepository;
+import de.flolang.matchyourgame.database.block.BlockRepository;
+import de.flolang.matchyourgame.database.history.LobbyHistoryRepository;
 import de.flolang.matchyourgame.database.game.GameOption;
 import de.flolang.matchyourgame.database.game.RankCompatibilityRepository;
 import de.flolang.matchyourgame.database.lobby.*;
@@ -89,6 +91,25 @@ public final class LobbyService {
         LobbyInvitation invitation = createAndSendInvitation(lobby, friend.getId(), InvitationSource.FRIEND);
         return new FriendInviteResult(invitation == null ? FriendInviteStatus.UNAVAILABLE : FriendInviteStatus.INVITED,
                 invitation);
+    }
+
+    public FriendInviteResult inviteHistoryMember(int leaderId, int contextLobbyId, int targetUserId) {
+        LobbyObject lobby = LobbyRepository.getActiveForUser(leaderId);
+        UserObject target = UserController.get(targetUserId);
+        if (lobby == null || lobby.getLeaderID() != leaderId || !lobby.isOpen() || target == null
+                || LobbyRepository.memberIds(lobby.getId()).contains(targetUserId)
+                || LobbyRepository.getActiveForUser(targetUserId) != null
+                || !LobbyHistoryRepository.sharedLobby(leaderId, targetUserId, contextLobbyId))
+            return new FriendInviteResult(FriendInviteStatus.UNAVAILABLE, null);
+        List<GameProfile> matchingProfiles = GameProfileRepository.getForGame(targetUserId, lobby.getGameID())
+                .stream().filter(profile -> profileFiltersMatch(lobby, profile)).toList();
+        if (matchingProfiles.isEmpty())
+            return new FriendInviteResult(FriendInviteStatus.PROFILE_MISMATCH, null);
+        if (matchingProfiles.stream().noneMatch(profile -> rankMatchesCurrentMembers(lobby, profile.rankValue())))
+            return new FriendInviteResult(FriendInviteStatus.RANK_MISMATCH, null);
+        LobbyInvitation invitation = createAndSendInvitation(lobby, targetUserId, InvitationSource.HISTORY);
+        return new FriendInviteResult(invitation == null ? FriendInviteStatus.UNAVAILABLE
+                : FriendInviteStatus.INVITED, invitation);
     }
 
     public QueueStartResult activatePassiveQueue(int actorId, int lobbyId) {
@@ -213,15 +234,26 @@ public final class LobbyService {
         if (invitation.source() == InvitationSource.PASSIVE_QUEUE && party != null)
             return LobbyJoinResult.PARTY_HOST_REQUIRED;
         boolean leaveParty = party != null && invitation.source() != InvitationSource.PASSIVE_QUEUE;
-        LobbyJoinResult result = joinAndHandleUnavailable(invitation.lobbyId(), userId, !leaveParty);
+        LobbyJoinResult result = invitation.source() == InvitationSource.PASSIVE_QUEUE
+                ? joinPassiveInvitation(invitation.lobbyId(), userId)
+                : joinAndHandleUnavailable(invitation.lobbyId(), userId, !leaveParty);
         if (result == LobbyJoinResult.JOINED)
             LobbyInvitationRepository.respond(invitationId, LobbyInvitation.Status.ACCEPTED);
+        else if (result == LobbyJoinResult.BLOCKED)
+            LobbyInvitationRepository.respond(invitationId, LobbyInvitation.Status.DECLINED);
         if (result == LobbyJoinResult.JOINED && leaveParty) {
             List<Integer> formerPartyMembers = party.memberIds();
             if (PartyRepository.leaveAndTransferHost(party.id(), userId))
                 ManagementMessageUpdater.refreshPartyState(formerPartyMembers);
         }
         return result;
+    }
+
+    private LobbyJoinResult joinPassiveInvitation(int lobbyId, int userId) {
+        synchronized (joinLocks.computeIfAbsent(lobbyId, ignored -> new Object())) {
+            if (BlockRepository.hasLobbyConflict(userId, lobbyId)) return LobbyJoinResult.BLOCKED;
+            return joinAndHandleUnavailable(lobbyId, userId, false);
+        }
     }
 
     public boolean declineInvitation(int invitationId, int userId) {
@@ -254,6 +286,40 @@ public final class LobbyService {
 
     public boolean isPassiveQueueAvailable(int userId) {
         return discord.isPassiveQueueAvailable(userId);
+    }
+
+    public int reachablePassiveUsers(int userId) {
+        List<SearchProfile> activeProfiles = SearchProfileRepository.getForUser(userId).stream()
+                .filter(SearchProfile::passiveEnabled).toList();
+        if (activeProfiles.isEmpty()) return 0;
+        List<Integer> gameIds = activeProfiles.stream().map(SearchProfile::gameId).distinct().toList();
+        java.util.Map<SearchProfile, java.util.Set<Integer>> compatibleRanks = new java.util.HashMap<>();
+        for (SearchProfile profile : activeProfiles) {
+            de.flolang.matchyourgame.database.game.GameObject game =
+                    de.flolang.matchyourgame.database.game.GameController.get(profile.gameId());
+            if (game != null && !game.isSkillbased()) {
+                compatibleRanks.put(profile, null);
+            } else {
+                java.util.Set<Integer> ranks = RankCompatibilityRepository
+                        .getCompatibleRanks(profile.gameId(), profile.rankValue()).stream()
+                        .map(GameOption::sortOrder).collect(java.util.stream.Collectors.toSet());
+                ranks.add(profile.rankValue());
+                compatibleRanks.put(profile, ranks);
+            }
+        }
+        return (int) SearchProfileRepository.reachableProfilesForGames(gameIds).stream()
+                .filter(candidate -> candidate.userId() != userId)
+                .filter(candidate -> activeProfiles.stream()
+                        .anyMatch(source -> QueueMatcher.profileFiltersMatch(source, candidate)
+                                && (compatibleRanks.get(source) == null
+                                || compatibleRanks.get(source).contains(candidate.rankValue()))))
+                .map(SearchProfile::userId)
+                .distinct()
+                .filter(candidateId -> PartyRepository.getForUser(candidateId) == null)
+                .filter(this::isPassiveQueueAvailable)
+                .filter(candidateId -> !de.flolang.matchyourgame.database.block.BlockRepository
+                        .conflictsWithAny(userId, List.of(candidateId)))
+                .count();
     }
 
     public void prepareVoiceIfFull(int lobbyId) {
@@ -305,6 +371,7 @@ public final class LobbyService {
                 .filter(target -> target.getId() != sourceLobbyId && target.isPassiveQueue())
                 .filter(target -> sourceMembers.size() + LobbyRepository.memberCount(target.getId())
                         <= target.getMaxPlayers())
+                .filter(target -> !groupsConflict(sourceMembers, LobbyRepository.memberIds(target.getId())))
                 .sorted(java.util.Comparator
                         .comparingInt((LobbyObject target) -> mergePriority(source, target, sourceMembers))
                         .thenComparingInt(target -> Math.abs(target.getMaxPlayers() - source.getMaxPlayers()))
@@ -342,6 +409,7 @@ public final class LobbyService {
                     return LobbyMergeResult.UNAVAILABLE;
                 List<Integer> sourceMembers = LobbyRepository.memberIds(sourceLobbyId);
                 List<Integer> targetMembers = LobbyRepository.memberIds(targetLobbyId);
+                if (groupsConflict(sourceMembers, targetMembers)) return LobbyMergeResult.INCOMPATIBLE;
                 if (sourceMembers.size() + targetMembers.size() > target.getMaxPlayers())
                     return LobbyMergeResult.NOT_ENOUGH_SPACE;
                 List<String> commonLanguages = commonMergeLanguages(source, target, sourceMembers, targetMembers);
@@ -583,7 +651,9 @@ public final class LobbyService {
             int userId = candidate.profile().userId();
             if (!rankMatchesCurrentMembers(lobby, candidate.profile().rankValue())) continue;
             if (source == InvitationSource.PASSIVE_QUEUE
-                    && (!discord.isPassiveQueueAvailable(userId) || PartyRepository.getForUser(userId) != null)) continue;
+                    && (!discord.isPassiveQueueAvailable(userId)
+                    || PartyRepository.getForUser(userId) != null
+                    || BlockRepository.hasLobbyConflict(userId, lobby.getId()))) continue;
             if (createAndSendInvitation(lobby, userId, source) != null) {
                 sent++;
                 if (source == InvitationSource.PASSIVE_QUEUE)
@@ -599,8 +669,16 @@ public final class LobbyService {
             return languagesMatch(lobby, List.of(userId))
                     && rankMatchesCurrentMembers(lobby, candidate.profile().rankValue())
                     && (source != InvitationSource.PASSIVE_QUEUE
-                    || discord.isPassiveQueueAvailable(userId) && PartyRepository.getForUser(userId) == null);
+                    || discord.isPassiveQueueAvailable(userId)
+                    && PartyRepository.getForUser(userId) == null
+                    && !BlockRepository.hasLobbyConflict(userId, lobby.getId()));
         });
+    }
+
+    private static boolean groupsConflict(List<Integer> first, List<Integer> second) {
+        for (int userId : first)
+            if (BlockRepository.conflictsWithAny(userId, second)) return true;
+        return false;
     }
 
     private boolean languagesMatch(LobbyObject lobby, List<Integer> userIds) {

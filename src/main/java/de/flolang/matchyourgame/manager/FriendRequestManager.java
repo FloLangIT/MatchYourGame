@@ -6,6 +6,8 @@ import de.flolang.matchyourgame.database.friend.FriendRepository;
 import de.flolang.matchyourgame.database.user.InboxMessageRepository;
 import de.flolang.matchyourgame.database.user.UserController;
 import de.flolang.matchyourgame.database.user.UserObject;
+import de.flolang.matchyourgame.database.user.UserRepository;
+import de.flolang.matchyourgame.database.user.FriendRequestPolicy;
 import de.flolang.matchyourgame.language.LanguageManager;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
@@ -74,6 +76,34 @@ public class FriendRequestManager {
                         ).queue();
                     });
                 });
+    }
+
+    public static RequestResult request(int requesterId, int receiverId) {
+        if (requesterId == receiverId) return RequestResult.SELF;
+        UserObject receiver = UserController.get(receiverId);
+        if (UserController.get(requesterId) == null || receiver == null) return RequestResult.UNAVAILABLE;
+        FriendObject friendship = FriendRepository.get(requesterId, receiverId);
+        if (friendship != null) {
+            if (friendship.getAccepted_at() != null) return RequestResult.ALREADY_FRIENDS;
+            if (friendship.getRequesterID() == requesterId) return RequestResult.ALREADY_PENDING;
+            new FriendRequestManager(friendship).acceptFriendRequest();
+            return RequestResult.ACCEPTED_EXISTING;
+        }
+        if (UserRepository.getFriendRequestPolicy(receiverId) == FriendRequestPolicy.FRIENDS_OF_FRIENDS
+                && !FriendRepository.haveMutualFriend(requesterId, receiverId))
+            return RequestResult.POLICY_RESTRICTED;
+        sendFriendRequest(requesterId, receiverId);
+        return RequestResult.SENT;
+    }
+
+    public enum RequestResult {
+        SENT,
+        ACCEPTED_EXISTING,
+        ALREADY_FRIENDS,
+        ALREADY_PENDING,
+        POLICY_RESTRICTED,
+        SELF,
+        UNAVAILABLE
     }
 
 }
