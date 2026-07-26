@@ -13,7 +13,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class LanguageCatalogTest {
     private static final Set<String> FEATURE_ROOTS = Set.of(
-            "UserProfile", "FriendRequest", "Lobby", "GameProfile", "PassiveQ", "Party", "Match", "Review", "Admin");
+            "UserProfile", "FriendRequest", "Lobby", "GameProfile", "PassiveQ", "Party", "Match",
+            "Review", "Admin", "Tutorial");
 
     @Test
     void germanAndEnglishFeatureCatalogsHaveIdenticalKeys() throws Exception {

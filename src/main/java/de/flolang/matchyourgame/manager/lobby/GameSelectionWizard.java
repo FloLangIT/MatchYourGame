@@ -3,6 +3,7 @@ package de.flolang.matchyourgame.manager.lobby;
 import de.flolang.matchyourgame.Main;
 import de.flolang.matchyourgame.database.game.*;
 import de.flolang.matchyourgame.database.lobby.LobbyObject;
+import de.flolang.matchyourgame.database.lobby.LobbyRepository;
 import de.flolang.matchyourgame.database.lobby.LobbyLanguageRepository;
 import de.flolang.matchyourgame.database.lobby.SearchProfile;
 import de.flolang.matchyourgame.database.lobby.SearchProfileRepository;
@@ -20,6 +21,7 @@ import de.flolang.matchyourgame.language.Language;
 import de.flolang.matchyourgame.language.CommunicationLanguageNames;
 import de.flolang.matchyourgame.manager.UserControlManager;
 import de.flolang.matchyourgame.manager.ManagementMessageUpdater;
+import de.flolang.matchyourgame.manager.TutorialManager;
 import de.flolang.matchyourgame.logging.DiscordLogService;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
@@ -84,6 +86,32 @@ public final class GameSelectionWizard extends ListenerAdapter {
         }
     }
 
+    public void startTutorialProfile(ButtonInteractionEvent event, UserObject user, int gameId) {
+        cleanup();
+        GameObject mode = GameRepository.get(gameId);
+        if (mode == null || !mode.isActive()) {
+            event.reply(t(user.getId(), "Lobby.Wizard.InvalidSelection")).setEphemeral(true).queue();
+            return;
+        }
+        String token = UUID.randomUUID().toString().substring(0, 8);
+        Session session = new Session(token, user.getId(), Flow.PROFILE_UPDATE, Instant.now());
+        session.tutorial = true;
+        session.modeId = gameId;
+        session.mainGameId = mode.getSubGameFrom() == null ? gameId : mode.getSubGameFrom().getId();
+        sessions.put(token, session);
+        GameProfile existing = GameProfileRepository.get(user.getId(), gameId);
+        if (existing != null && initializeExistingProfile(session, existing)) {
+            renderExistingReply(event, session);
+            return;
+        }
+        if (options(session, GameOption.Type.PLATFORM).isEmpty()) {
+            sessions.remove(token);
+            event.reply(t(user.getId(), "Lobby.Wizard.NoPlatforms")).setEphemeral(true).queue();
+            return;
+        }
+        renderReply(event, session, Step.PLATFORM, 0);
+    }
+
     public void startExistingProfileUpdate(StringSelectInteractionEvent event, UserObject user,
                                            int gameId, String platform) {
         cleanup();
@@ -108,6 +136,12 @@ public final class GameSelectionWizard extends ListenerAdapter {
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
         String customId = event.getComponentId();
+        if (customId.startsWith("gameProfileDeleteAsk-")
+                || customId.startsWith("gameProfileDeleteConfirm-")
+                || customId.startsWith("gameProfileDeleteCancel-")) {
+            handleProfileDeletion(event, customId);
+            return;
+        }
         if (customId.startsWith("gameWizardConfirm-") || customId.startsWith("gameWizardCancel-")) {
             handleProfileConfirmation(event, customId);
             return;
@@ -467,7 +501,8 @@ public final class GameSelectionWizard extends ListenerAdapter {
         if (!confirm) {
             sessions.remove(token);
             event.deferEdit().queue();
-            if (session.autoDeleteOnComplete) event.getMessage().delete().queue();
+            if (session.tutorial) TutorialManager.profileCancelled(event.getMessage(), user);
+            else if (session.autoDeleteOnComplete) event.getMessage().delete().queue();
             else new UserControlManager(event.getMessage(), user).loadStartPage();
             return;
         }
@@ -483,9 +518,63 @@ public final class GameSelectionWizard extends ListenerAdapter {
         event.reply(t(user.getId(), key, Map.of("%game%", gameDisplayName(session.modeId),
                         "%platform%", session.platform.name())))
                 .setEphemeral(true).queue();
-        if (session.autoDeleteOnComplete)
+        if (session.tutorial)
+            TutorialManager.profileConfigured(event.getMessage(), user);
+        else if (session.autoDeleteOnComplete)
             event.getMessage().delete().queueAfter(5, TimeUnit.SECONDS);
         else new UserControlManager(event.getMessage(), user).loadStartPage();
+    }
+
+    private void handleProfileDeletion(ButtonInteractionEvent event, String customId) {
+        String prefix = customId.startsWith("gameProfileDeleteAsk-")
+                ? "gameProfileDeleteAsk-" : customId.startsWith("gameProfileDeleteConfirm-")
+                ? "gameProfileDeleteConfirm-" : "gameProfileDeleteCancel-";
+        String token = customId.substring(prefix.length());
+        Session session = sessions.get(token);
+        UserObject user = UserController.get(event.getUser().getIdLong());
+        if (user == null || session == null || session.userId != user.getId()
+                || session.originalProfile == null || session.tutorial || expired(session)) {
+            event.reply(user == null ? "Session expired" : t(user.getId(), "Lobby.Wizard.Expired"))
+                    .setEphemeral(true).queue();
+            if (session != null && expired(session)) sessions.remove(token);
+            return;
+        }
+        if (prefix.equals("gameProfileDeleteCancel-")) {
+            renderExistingReply(event, session);
+            return;
+        }
+        if (prefix.equals("gameProfileDeleteAsk-")) {
+            Map<String, String> replacements = Map.of(
+                    "%game%", gameDisplayName(session.modeId),
+                    "%platform%", session.originalProfile.platform());
+            event.editMessageEmbeds(new EmbedCreator()
+                            .setTitle(t(user.getId(), "GameProfile.Delete.Title"))
+                            .setDescription(t(user.getId(), "GameProfile.Delete.Description", replacements)).build())
+                    .setComponents(ActionRow.of(
+                            Button.danger("gameProfileDeleteConfirm-" + token,
+                                    t(user.getId(), "GameProfile.Delete.Confirm")),
+                            Button.secondary("gameProfileDeleteCancel-" + token,
+                                    t(user.getId(), "GameProfile.Delete.Cancel"))))
+                    .queue();
+            return;
+        }
+        if (LobbyRepository.getActiveForUser(user.getId()) != null) {
+            event.reply(t(user.getId(), "GameProfile.Delete.ActiveLobby")).setEphemeral(true).queue();
+            return;
+        }
+        GameProfile profile = session.originalProfile;
+        boolean deleted = GameProfileRepository.delete(
+                user.getId(), session.modeId, profile.platform());
+        if (deleted) {
+            sessions.remove(token);
+            ManagementMessageUpdater.refreshFriendActivity(user.getId());
+            DiscordLogService.action("GAME_PROFILE_DELETED", "User #" + user.getId()
+                    + " hat Spielprofil für Game #" + session.modeId + " auf Plattform "
+                    + profile.platform() + " gelöscht");
+        }
+        event.reply(t(user.getId(), deleted
+                ? "GameProfile.Delete.Success" : "GameProfile.Delete.Failed")).setEphemeral(true).queue();
+        if (deleted) new UserControlManager(event.getMessage(), user).loadGameProfilesPage();
     }
 
     private static boolean saveProfile(Session session, UserObject user) {
@@ -563,11 +652,17 @@ public final class GameSelectionWizard extends ListenerAdapter {
     }
 
     private static List<ActionRow> confirmationRows(Session session) {
-        return List.of(ActionRow.of(
+        List<Button> buttons = new ArrayList<>(List.of(
                         Button.success("gameWizardConfirm-" + session.token,
                                 t(session.userId, "GameProfile.Confirmation.Confirm")),
                         Button.secondary("gameWizardCancel-" + session.token,
                                 t(session.userId, "GameProfile.Confirmation.Cancel"))));
+        if (session.tutorial) buttons.add(Button.danger("tutorialExit",
+                t(session.userId, "Tutorial.Setup.Button.Exit")));
+        else if (session.originalProfile != null) buttons.add(Button.danger(
+                "gameProfileDeleteAsk-" + session.token,
+                t(session.userId, "GameProfile.Delete.Button")));
+        return List.of(ActionRow.of(buttons));
     }
 
     private static net.dv8tion.jda.api.entities.MessageEmbed confirmationEmbed(Session session) {
@@ -596,24 +691,35 @@ public final class GameSelectionWizard extends ListenerAdapter {
             sessions.remove(session.token);
             event.editMessageEmbeds(new EmbedCreator().setTitle(t(session.userId, "Lobby.Wizard.Select.Game"))
                             .setDescription(t(session.userId, "Lobby.Wizard.NoGames")).build())
-                    .setComponents(ActionRow.of(Button.primary("mainPage", t(session.userId, "UserProfile.Button.Back")))).queue(); return;
+                    .setComponents(ActionRow.of(navigationButtons(session))).queue(); return;
         }
         SelectionPage selection = page(session, step, page);
         event.editMessageEmbeds(selection.embed).setComponents(
                 ActionRow.of(selection.menu),
-                ActionRow.of(Button.primary("mainPage", t(session.userId, "UserProfile.Button.Back")))).queue();
+                ActionRow.of(navigationButtons(session))).queue();
     }
 
     private void renderEdit(StringSelectInteractionEvent event, Session session, Step step, int page) {
         SelectionPage selection = page(session, step, page);
         event.editMessageEmbeds(selection.embed).setComponents(
                 ActionRow.of(selection.menu),
-                ActionRow.of(Button.primary("mainPage", t(session.userId, "UserProfile.Button.Back")))).queue();
+                ActionRow.of(navigationButtons(session))).queue();
     }
 
     private void renderError(StringSelectInteractionEvent event, Session session, String key) {
         event.editMessageEmbeds(new EmbedCreator().setDescription(t(session.userId, key)).build())
-                .setComponents(ActionRow.of(Button.primary("mainPage", t(session.userId, "UserProfile.Button.Back")))).queue();
+                .setComponents(ActionRow.of(navigationButtons(session))).queue();
+    }
+
+    private static List<Button> navigationButtons(Session session) {
+        List<Button> buttons = new ArrayList<>();
+        buttons.add(session.tutorial
+                ? Button.danger("tutorialExit", t(session.userId, "Tutorial.Setup.Button.Exit"))
+                : Button.primary("mainPage", t(session.userId, "UserProfile.Button.Back")));
+        if (!session.tutorial && session.originalProfile != null)
+            buttons.add(Button.danger("gameProfileDeleteAsk-" + session.token,
+                    t(session.userId, "GameProfile.Delete.Button")));
+        return buttons;
     }
 
     private SelectionPage page(Session session, Step step, int requestedPage) {
@@ -728,6 +834,7 @@ public final class GameSelectionWizard extends ListenerAdapter {
         GameProfile originalProfile;
         boolean passiveAutoEnabled;
         boolean autoDeleteOnComplete;
+        boolean tutorial;
         List<String> languages = List.of();
         Session(String token, int userId, Flow flow, Instant createdAt) {
             this.token = token; this.userId = userId; this.flow = flow; this.createdAt = createdAt;

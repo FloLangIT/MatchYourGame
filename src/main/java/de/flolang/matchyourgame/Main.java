@@ -23,6 +23,7 @@ import de.flolang.matchyourgame.database.report.WarningRepository;
 import de.flolang.matchyourgame.database.lobby.PassiveQueueSettingsRepository;
 import de.flolang.matchyourgame.database.user.UserRepository;
 import de.flolang.matchyourgame.database.user.InboxMessageRepository;
+import de.flolang.matchyourgame.database.tutorial.TutorialSessionRepository;
 import de.flolang.matchyourgame.listener.guild.GuildJoinListener;
 import de.flolang.matchyourgame.listener.guild.DiscordHealthListener;
 import de.flolang.matchyourgame.listener.guild.SetupGuildListener;
@@ -114,6 +115,7 @@ public class Main {
         RankCompatibilityRepository.init();
         GameProfileRepository.init();
         CommunicationLanguageRepository.init();
+        TutorialSessionRepository.init();
         LobbyRepository.init();
         GameApiRepository.init();
         PassiveQueueSettingsRepository.init();
@@ -252,6 +254,7 @@ public class Main {
         jda.addEventListener(new FriendActivityListener());
         jda.addEventListener(new ClearChatCommandListener());
         jda.addEventListener(new TutorialCommandListener());
+        jda.addEventListener(new TutorialInteractionListener());
         jda.addEventListener(new ReportListener());
         jda.addEventListener(new ProjectInviteListener());
         jda.addEventListener(new ProjectUserAdminListener());
